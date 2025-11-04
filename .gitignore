@@ -10,3 +10,9 @@ dist
 .env*
 .env
 .DS_Store
+node_modules
+.next
+dist
+.env*
+.env
+.DS_Store
