@@ -1,0 +1,388 @@
+import { motion } from "motion/react";
+import {
+  Package,
+  CheckCircle2,
+  Activity,
+  TrendingUp,
+  Plus,
+  FolderPlus,
+  ChevronLeft,
+  ChevronRight,
+  ArrowUp,
+  ArrowDown,
+  MapPin,
+  Calendar as CalendarIcon,
+  Clock,
+  ArrowUpDown,
+  Filter,
+} from "lucide-react";
+import { Button } from "./ui/button";
+import { Card } from "./ui/card";
+import { Badge } from "./ui/badge";
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "./ui/dropdown-menu";
+import { Tabs, TabsList, TabsTrigger } from "./ui/tabs";
+import { format } from "date-fns";
+import { ImageWithFallback } from "./figma/ImageWithFallback";
+import { getProjectItemIds, isProjectStaged, isStagingUpcoming } from "../utils/projectUtils";
+import { AIAssistant } from "./AIAssistant";
+import type { AppState, InventoryItem, JobAssignment } from "../types";
+
+interface SectionProps {
+  onNavigate: (state: AppState, data?: any) => void;
+  kpis?: any[];
+  topItems?: InventoryItem[];
+  activeProjects?: JobAssignment[];
+  filteredProjects?: JobAssignment[];
+  hasMoreProjects?: boolean;
+  sortOrder?: "earliest" | "latest";
+  setSortOrder?: (order: "earliest" | "latest") => void;
+  projectFilter?: "all" | "staged" | "upcoming";
+  setProjectFilter?: (filter: "all" | "staged" | "upcoming") => void;
+  scrollPosition?: number;
+  handleScroll?: (direction: "left" | "right") => void;
+  handleTopItemClick?: (item: InventoryItem) => void;
+  getStockStatus?: (item: InventoryItem) => { label: string; variant: "default" | "secondary" | "destructive" };
+  getDaysLeft?: (date?: Date) => number | null;
+  stagedProjectsCount?: number;
+  jobAssignments?: JobAssignment[];
+  items?: InventoryItem[];
+}
+
+export function KPISection({ kpis, onNavigate }: SectionProps) {
+  return (
+    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+      {kpis?.map((kpi, index) => (
+        <motion.div
+          key={kpi.label}
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: index * 0.1 }}
+        >
+          <Card 
+            className="bg-card border-border elevation-sm p-6 cursor-pointer hover:elevation-md transition-shadow"
+            onClick={kpi.onClick}
+          >
+            <div className="flex items-start justify-between mb-4">
+              <kpi.icon className={`w-8 h-8 ${kpi.color}`} />
+              <div className="flex items-center gap-1">
+                {kpi.change > 0 ? (
+                  <ArrowUp className="w-4 h-4 text-chart-3" />
+                ) : (
+                  <ArrowDown className="w-4 h-4 text-destructive" />
+                )}
+                <span className={kpi.change > 0 ? "text-chart-3" : "text-destructive"}>
+                  {Math.abs(kpi.change)}%
+                </span>
+              </div>
+            </div>
+            <h3 className="text-foreground mb-1">{kpi.value}</h3>
+            <p className="text-muted-foreground">{kpi.label}</p>
+          </Card>
+        </motion.div>
+      ))}
+    </div>
+  );
+}
+
+export function QuickActionsSection({ onNavigate }: SectionProps) {
+  return (
+    <motion.div
+      initial={{ opacity: 0, y: 20 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ delay: 0.4 }}
+      className="flex flex-col sm:flex-row gap-4 mb-8"
+    >
+      <Button onClick={() => onNavigate("addItem")} className="flex-1">
+        <Plus className="w-4 h-4 mr-2" />
+        Add Item
+      </Button>
+      <Button onClick={() => onNavigate("assignToJob")} variant="outline" className="flex-1">
+        <FolderPlus className="w-4 h-4 mr-2" />
+        Create Project
+      </Button>
+    </motion.div>
+  );
+}
+
+export function AIAssistantSection({ jobAssignments, items, onNavigate }: SectionProps) {
+  return (
+    <motion.div
+      initial={{ opacity: 0, y: 20 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ delay: 0.45 }}
+      className="mb-8"
+    >
+      <AIAssistant 
+        jobAssignments={jobAssignments || []}
+        items={items || []}
+        onNavigate={onNavigate}
+      />
+    </motion.div>
+  );
+}
+
+export function ProjectsSection({
+  activeProjects,
+  filteredProjects,
+  hasMoreProjects,
+  sortOrder,
+  setSortOrder,
+  projectFilter,
+  setProjectFilter,
+  getDaysLeft,
+  stagedProjectsCount,
+  onNavigate,
+  items,
+}: SectionProps) {
+  return (
+    <motion.div
+      initial={{ opacity: 0, y: 20 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ delay: 0.5 }}
+      className="mb-8"
+    >
+      <div className="flex items-start justify-between mb-4">
+        <div>
+          <div className="flex items-center gap-2 mb-1">
+            <h2 className="text-foreground">Active Projects</h2>
+            <Badge variant="secondary">{stagedProjectsCount} Staged</Badge>
+          </div>
+          <p className="text-muted-foreground">Track staging timelines and item allocation</p>
+        </div>
+        <div className="flex gap-2">
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button variant="outline" size="sm" className="gap-2">
+                <Filter className="w-4 h-4" />
+                {projectFilter === "all" ? "All" : projectFilter === "staged" ? "Staged" : "Upcoming"}
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end">
+              <DropdownMenuItem onClick={() => setProjectFilter?.("all")}>
+                All Projects
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={() => setProjectFilter?.("staged")}>
+                Staged Only
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={() => setProjectFilter?.("upcoming")}>
+                Upcoming Only
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button variant="outline" size="sm" className="gap-2">
+                <ArrowUpDown className="w-4 h-4" />
+                {sortOrder === "earliest" ? "Earliest" : "Latest"}
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end">
+              <DropdownMenuItem onClick={() => setSortOrder?.("earliest")}>
+                Earliest First
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={() => setSortOrder?.("latest")}>
+                Latest First
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
+        </div>
+      </div>
+
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        {activeProjects?.map((job, index) => {
+          const projectItems = getProjectItemIds(job.items);
+          const allItems = projectItems
+            .map(id => items?.find(item => item.id === id))
+            .filter(Boolean) as InventoryItem[];
+          
+          const daysLeft = getDaysLeft?.(job.stagingDate);
+          const isUpcoming = isStagingUpcoming(job.stagingDate);
+          
+          return (
+            <motion.div
+              key={job.id}
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: index * 0.1 }}
+            >
+              <Card 
+                className="bg-card border-border elevation-sm p-6 cursor-pointer hover:elevation-md transition-shadow"
+                onClick={() => onNavigate("projectDetail", { project: job })}
+              >
+                <div className="flex items-start justify-between mb-4">
+                  <div>
+                    <h3 className="text-foreground mb-1">{job.jobName}</h3>
+                    <div className="flex items-center gap-1 text-muted-foreground">
+                      <MapPin className="w-3 h-3" />
+                      <p>{job.jobLocation}</p>
+                    </div>
+                  </div>
+                  <Badge variant={job.stagingStatus === "staged" ? "default" : "secondary"}>
+                    {job.stagingStatus === "staged" ? "Staged" : "Upcoming"}
+                  </Badge>
+                </div>
+
+                {job.stagingDate && (
+                  <div className="flex items-center gap-4 mb-4 pb-4 border-b border-border">
+                    <div className="flex items-center gap-2 text-muted-foreground">
+                      <CalendarIcon className="w-4 h-4" />
+                      <span>{format(job.stagingDate, "MMM d, yyyy")}</span>
+                    </div>
+                    {daysLeft !== null && daysLeft >= 0 && (
+                      <div className={`flex items-center gap-1 ${isUpcoming ? 'text-chart-4' : 'text-muted-foreground'}`}>
+                        <Clock className="w-4 h-4" />
+                        <span>
+                          {isUpcoming ? `${7 - Math.floor((new Date().getTime() - job.stagingDate.getTime()) / (1000 * 60 * 60 * 24))} days` : `${daysLeft}d left`}
+                        </span>
+                      </div>
+                    )}
+                  </div>
+                )}
+
+                <div className="space-y-2">
+                  <div className="flex items-center justify-between text-muted-foreground">
+                    <span>Items</span>
+                    <span>{projectItems.length} assigned</span>
+                  </div>
+                  {allItems.length > 0 && (
+                    <p className="text-muted-foreground">
+                      Items will be shown here once they've been added
+                    </p>
+                  )}
+                </div>
+              </Card>
+            </motion.div>
+          );
+        })}
+      </div>
+
+      {activeProjects?.length === 0 && (
+        <Card className="bg-card border-border elevation-sm p-8 text-center mt-6">
+          <FolderPlus className="w-12 h-12 text-muted-foreground mx-auto mb-4" />
+          <h4 className="text-foreground mb-2">No Projects</h4>
+          <p className="text-muted-foreground mb-4">
+            {projectFilter !== "all" 
+              ? `No ${projectFilter} projects found. Try changing the filter.`
+              : "Create your first project to start tracking staging and deployments"}
+          </p>
+          {projectFilter === "all" && (
+            <Button onClick={() => onNavigate("assignToJob")} variant="outline">
+              <FolderPlus className="w-4 h-4 mr-2" />
+              Create Project
+            </Button>
+          )}
+        </Card>
+      )}
+
+      {hasMoreProjects && (
+        <div className="flex justify-center mt-6">
+          <Button variant="outline" onClick={() => onNavigate("inUse")}>
+            View All {filteredProjects?.length} Projects
+          </Button>
+        </div>
+      )}
+    </motion.div>
+  );
+}
+
+export function TopItemsSection({
+  topItems,
+  scrollPosition,
+  handleScroll,
+  handleTopItemClick,
+  getStockStatus,
+}: SectionProps) {
+  return (
+    <motion.div
+      initial={{ opacity: 0, y: 20 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ delay: 0.6 }}
+      className="mb-8"
+    >
+      <div className="flex items-center justify-between mb-4">
+        <h2 className="text-foreground">Top 5 Most-Used Items</h2>
+        <div className="flex gap-2">
+          <button
+            onClick={() => handleScroll?.("left")}
+            className="p-2 border border-border rounded-lg hover:bg-muted"
+            disabled={scrollPosition === 0}
+          >
+            <ChevronLeft className="w-4 h-4" />
+          </button>
+          <button
+            onClick={() => handleScroll?.("right")}
+            className="p-2 border border-border rounded-lg hover:bg-muted"
+          >
+            <ChevronRight className="w-4 h-4" />
+          </button>
+        </div>
+      </div>
+
+      <div
+        id="top-items-container"
+        className="flex gap-4 overflow-x-auto pb-4"
+        style={{ scrollbarWidth: "none", msOverflowStyle: "none" }}
+      >
+        {topItems?.map((item) => {
+          const status = getStockStatus?.(item) || { label: "Available", variant: "default" as const };
+          return (
+            <Card
+              key={item.id}
+              className="flex-shrink-0 w-72 bg-card border-border elevation-sm p-4 cursor-pointer hover:elevation-md transition-shadow"
+              onClick={() => handleTopItemClick?.(item)}
+            >
+              <div className="relative mb-4">
+                <div className="w-full h-40 bg-white rounded-lg flex items-center justify-center overflow-hidden">
+                  {item.imageUrl ? (
+                    <ImageWithFallback
+                      src={item.imageUrl}
+                      alt={item.name}
+                      className="w-full h-full object-contain"
+                    />
+                  ) : (
+                    <Package className="w-12 h-12 text-muted-foreground" />
+                  )}
+                </div>
+                <Badge className="absolute top-2 right-2" variant="secondary">
+                  {item.usageCount} uses
+                </Badge>
+              </div>
+              <h4 className="text-foreground mb-2">{item.name}</h4>
+              <p className="text-muted-foreground mb-3">{item.category}</p>
+              <Badge variant={status.variant}>{status.label}</Badge>
+            </Card>
+          );
+        })}
+      </div>
+    </motion.div>
+  );
+}
+
+export function InsightsSection({ onNavigate }: SectionProps) {
+  return (
+    <motion.div
+      initial={{ opacity: 0, y: 20 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ delay: 0.7 }}
+    >
+      <Card className="bg-card border-border elevation-sm p-6">
+        <div className="flex items-center gap-2 mb-4">
+          <TrendingUp className="w-5 h-5 text-primary" />
+          <h3 className="text-foreground">Insights</h3>
+        </div>
+        <h4 className="text-foreground mb-3">Usage Trends</h4>
+        <p className="text-muted-foreground mb-4">
+          Your inventory utilization has increased by 8% this month. Professional Display Screens
+          and Modern Lounge Chairs are your most-used items. Consider increasing stock for items
+          frequently showing low availability.
+        </p>
+        <button
+          onClick={() => onNavigate("reports")}
+          className="text-primary hover:underline"
+        >
+          View Full Report →
+        </button>
+      </Card>
+    </motion.div>
+  );
+}
