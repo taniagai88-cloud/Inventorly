@@ -83,14 +83,17 @@ export function BulkUpload({ onNavigate }: BulkUploadProps) {
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
         >
-          {/* Header */}
-          <button
-            onClick={() => onNavigate("addItem")}
-            className="flex items-center gap-2 text-muted-foreground hover:text-foreground mb-6"
-          >
-            <ArrowLeft className="w-4 h-4" />
-            <span>Back to Add Item</span>
-          </button>
+          {/* Back Button */}
+          <div className="mb-4">
+            <Button
+              variant="ghost"
+              onClick={() => onNavigate("library")}
+              className="gap-2"
+            >
+              <ArrowLeft className="w-4 h-4" />
+              Back
+            </Button>
+          </div>
 
           <h2 className="text-foreground mb-2">Bulk Upload Items</h2>
           <p className="text-muted-foreground mb-8">

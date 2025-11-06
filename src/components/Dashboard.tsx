@@ -88,6 +88,8 @@ export function Dashboard({ onNavigate, jobAssignments }: DashboardProps) {
   const [stagingDate, setStagingDate] = useState<Date>();
   const [sortOrder, setSortOrder] = useState<"earliest" | "latest">("earliest");
   const [projectFilter, setProjectFilter] = useState<"all" | "staged" | "upcoming">("all");
+  const [projectView, setProjectView] = useState<"card" | "calendar">("card");
+  const [selectedDate, setSelectedDate] = useState<Date | undefined>(undefined);
   const [customizeSheetOpen, setCustomizeSheetOpen] = useState(false);
   const [visibleSections, setVisibleSections] = useState<DashboardSections>(DEFAULT_SECTIONS);
   const [sectionOrder, setSectionOrder] = useState<SectionKey[]>(DEFAULT_SECTION_ORDER);
@@ -605,7 +607,7 @@ export function Dashboard({ onNavigate, jobAssignments }: DashboardProps) {
                 </motion.div>
               )}
 
-              {sectionKey === "projects" && activeProjects && (
+              {sectionKey === "projects" && (
                 <motion.div
                   initial={{ opacity: 0, y: 20 }}
                   animate={{ opacity: 1, y: 0 }}
@@ -615,12 +617,30 @@ export function Dashboard({ onNavigate, jobAssignments }: DashboardProps) {
                   <div className="flex items-start justify-between mb-4">
                     <div>
                       <div className="flex items-center gap-2 mb-1">
-                        <h2 className="text-foreground">Active Projects</h2>
+                        <h2 className="text-foreground">Projects</h2>
                         <Badge variant="secondary">{stagedProjectsCount} Staged</Badge>
                       </div>
                       <p className="text-muted-foreground">Track staging timelines and item allocation</p>
                     </div>
                     <div className="flex gap-2">
+                      <Button
+                        variant={projectView === "card" ? "default" : "outline"}
+                        size="sm"
+                        className="gap-2"
+                        onClick={() => setProjectView("card")}
+                      >
+                        <LayoutGrid className="w-4 h-4" />
+                        Card
+                      </Button>
+                      <Button
+                        variant={projectView === "calendar" ? "default" : "outline"}
+                        size="sm"
+                        className="gap-2"
+                        onClick={() => setProjectView("calendar")}
+                      >
+                        <CalendarIcon className="w-4 h-4" />
+                        Calendar
+                      </Button>
                       <DropdownMenu>
                         <DropdownMenuTrigger asChild>
                           <Button variant="outline" size="sm" className="gap-2">
@@ -634,77 +654,180 @@ export function Dashboard({ onNavigate, jobAssignments }: DashboardProps) {
                           <DropdownMenuItem onClick={() => setProjectFilter("upcoming")}>Upcoming Only</DropdownMenuItem>
                         </DropdownMenuContent>
                       </DropdownMenu>
-                      <DropdownMenu>
-                        <DropdownMenuTrigger asChild>
-                          <Button variant="outline" size="sm" className="gap-2">
-                            <ArrowUpDown className="w-4 h-4" />
-                            {sortOrder === "earliest" ? "Earliest" : "Latest"}
-                          </Button>
-                        </DropdownMenuTrigger>
-                        <DropdownMenuContent align="end">
-                          <DropdownMenuItem onClick={() => setSortOrder("earliest")}>Earliest First</DropdownMenuItem>
-                          <DropdownMenuItem onClick={() => setSortOrder("latest")}>Latest First</DropdownMenuItem>
-                        </DropdownMenuContent>
-                      </DropdownMenu>
+                      {projectView === "card" && (
+                        <DropdownMenu>
+                          <DropdownMenuTrigger asChild>
+                            <Button variant="outline" size="sm" className="gap-2">
+                              <ArrowUpDown className="w-4 h-4" />
+                              {sortOrder === "earliest" ? "Earliest" : "Latest"}
+                            </Button>
+                          </DropdownMenuTrigger>
+                          <DropdownMenuContent align="end">
+                            <DropdownMenuItem onClick={() => setSortOrder("earliest")}>Earliest First</DropdownMenuItem>
+                            <DropdownMenuItem onClick={() => setSortOrder("latest")}>Latest First</DropdownMenuItem>
+                          </DropdownMenuContent>
+                        </DropdownMenu>
+                      )}
                     </div>
                   </div>
-                  <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-                    {activeProjects.map((job, i) => {
-                      const projectItems = getProjectItemIds(job);
-                      const allItems = projectItems
-                        .map(id => mockInventoryItems.find(item => item.id === id))
-                        .filter(Boolean) as InventoryItem[];
-                      const daysLeft = getDaysLeft(job.stagingDate);
-                      const isUpcoming = isStagingUpcoming(job.stagingDate);
-                      return (
-                        <motion.div
-                          key={job.id}
-                          initial={{ opacity: 0, y: 20 }}
-                          animate={{ opacity: 1, y: 0 }}
-                          transition={{ delay: i * 0.1 }}
-                        >
-                          <Card 
-                            className="bg-card border-border elevation-sm p-6 cursor-pointer hover:elevation-md transition-shadow"
-                            onClick={() => onNavigate("projectDetail", { project: job })}
+                  {projectView === "card" ? (
+                    <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                      {activeProjects.map((job, i) => {
+                        const projectItems = getProjectItemIds(job);
+                        const allItems = projectItems
+                          .map(id => mockInventoryItems.find(item => item.id === id))
+                          .filter(Boolean) as InventoryItem[];
+                        const daysLeft = getDaysLeft(job.stagingDate);
+                        const isUpcoming = isStagingUpcoming(job.stagingDate);
+                        return (
+                          <motion.div
+                            key={job.id}
+                            initial={{ opacity: 0, y: 20 }}
+                            animate={{ opacity: 1, y: 0 }}
+                            transition={{ delay: i * 0.1 }}
                           >
-                            <div className="flex items-start justify-between mb-4">
-                              <div>
-                                <h3 className="text-foreground mb-1">{job.jobName}</h3>
-                                <div className="flex items-center gap-1 text-muted-foreground">
-                                  <MapPin className="w-3 h-3" />
-                                  <p>{job.jobLocation}</p>
-                                </div>
-                              </div>
-                              <Badge variant={job.stagingStatus === "staged" ? "default" : "secondary"}>
-                                {job.stagingStatus === "staged" ? "Staged" : "Upcoming"}
-                              </Badge>
-                            </div>
-                            {job.stagingDate && (
-                              <div className="flex items-center gap-4 mb-4 pb-4 border-b border-border">
-                                <div className="flex items-center gap-2 text-muted-foreground">
-                                  <CalendarIcon className="w-4 h-4" />
-                                  <span>{format(job.stagingDate, "MMM d, yyyy")}</span>
-                                </div>
-                                {daysLeft !== null && daysLeft >= 0 && (
-                                  <div className={`flex items-center gap-1 ${isUpcoming ? 'text-chart-4' : 'text-muted-foreground'}`}>
-                                    <Clock className="w-4 h-4" />
-                                    <span>{isUpcoming ? `${7 - Math.floor((new Date().getTime() - job.stagingDate.getTime()) / (1000 * 60 * 60 * 24))} days` : `${daysLeft}d left`}</span>
+                            <Card 
+                              className="bg-card border-border elevation-sm p-6 cursor-pointer hover:elevation-md transition-shadow"
+                              onClick={() => onNavigate("projectDetail", { project: job })}
+                            >
+                              <div className="flex items-start justify-between mb-4">
+                                <div>
+                                  <h3 className="text-foreground mb-1">{job.jobName}</h3>
+                                  <div className="flex items-center gap-1 text-muted-foreground">
+                                    <MapPin className="w-3 h-3" />
+                                    <p>{job.jobLocation}</p>
                                   </div>
-                                )}
+                                </div>
+                                <Badge variant={job.stagingStatus === "staged" ? "default" : "secondary"}>
+                                  {job.stagingStatus === "staged" ? "Staged" : "Upcoming"}
+                                </Badge>
                               </div>
-                            )}
-                            <div className="space-y-2">
-                              <div className="flex items-center justify-between text-muted-foreground">
-                                <span>Items</span>
-                                <span>{projectItems.length} assigned</span>
+                              {job.stagingDate && (
+                                <div className="flex items-center gap-4 mb-4 pb-4 border-b border-border">
+                                  <div className="flex items-center gap-2 text-muted-foreground">
+                                    <CalendarIcon className="w-4 h-4" />
+                                    <span>{format(job.stagingDate, "MMM d, yyyy")}</span>
+                                  </div>
+                                  {daysLeft !== null && daysLeft >= 0 && (
+                                    <div className={`flex items-center gap-1 ${isUpcoming ? 'text-chart-4' : 'text-muted-foreground'}`}>
+                                      <Clock className="w-4 h-4" />
+                                      <span>{isUpcoming ? `${7 - Math.floor((new Date().getTime() - job.stagingDate.getTime()) / (1000 * 60 * 60 * 24))} days` : `${daysLeft}d left`}</span>
+                                    </div>
+                                  )}
+                                </div>
+                              )}
+                              <div className="space-y-2">
+                                <div className="flex items-center justify-between text-muted-foreground">
+                                  <span>Items</span>
+                                  <span>{projectItems.length} assigned</span>
+                                </div>
                               </div>
-                            </div>
-                          </Card>
-                        </motion.div>
-                      );
-                    })}
-                  </div>
-                  {activeProjects.length === 0 && (
+                            </Card>
+                          </motion.div>
+                        );
+                      })}
+                    </div>
+                  ) : (
+                    <div className="flex flex-col lg:flex-row gap-6">
+                      <Card className="bg-card border-border elevation-sm p-6 flex-1">
+                        <Calendar
+                          mode="single"
+                          selected={selectedDate}
+                          onSelect={(date) => {
+                            setSelectedDate(date);
+                            if (date) {
+                              const projectOnDate = activeProjects.find(job => {
+                                if (!job.stagingDate) return false;
+                                const stagingDate = new Date(job.stagingDate);
+                                stagingDate.setHours(0, 0, 0, 0);
+                                const selectedDateOnly = new Date(date);
+                                selectedDateOnly.setHours(0, 0, 0, 0);
+                                return stagingDate.getTime() === selectedDateOnly.getTime();
+                              });
+                              if (projectOnDate) {
+                                onNavigate("projectDetail", { project: projectOnDate });
+                              }
+                            }
+                          }}
+                          modifiers={{
+                            hasProject: activeProjects
+                              .filter(job => job.stagingDate)
+                              .map(job => {
+                                const date = new Date(job.stagingDate!);
+                                date.setHours(0, 0, 0, 0);
+                                return date;
+                              }) as Date[]
+                          }}
+                          modifiersClassNames={{
+                            hasProject: "bg-primary/10 text-primary font-semibold"
+                          }}
+                          classNames={{
+                            day: "relative",
+                            day_selected: "bg-primary text-primary-foreground hover:bg-primary hover:text-primary-foreground",
+                          }}
+                          className="w-full"
+                        />
+                      </Card>
+                      <Card className="bg-card border-border elevation-sm p-6 lg:w-80">
+                        <h4 className="text-foreground mb-4">Projects by Date</h4>
+                        <div className="space-y-3 max-h-[600px] overflow-y-auto">
+                          {activeProjects
+                            .filter(job => job.stagingDate)
+                            .sort((a, b) => {
+                              if (!a.stagingDate || !b.stagingDate) return 0;
+                              return a.stagingDate.getTime() - b.stagingDate.getTime();
+                            })
+                            .map((job) => {
+                              const projectItems = getProjectItemIds(job);
+                              const isUpcoming = isStagingUpcoming(job.stagingDate);
+                              const daysLeft = getDaysLeft(job.stagingDate);
+                              return (
+                                <motion.div
+                                  key={job.id}
+                                  initial={{ opacity: 0 }}
+                                  animate={{ opacity: 1 }}
+                                >
+                                  <Card
+                                    className={`bg-muted border-border p-4 cursor-pointer hover:bg-muted/80 transition-colors ${
+                                      selectedDate && job.stagingDate && 
+                                      new Date(selectedDate).setHours(0, 0, 0, 0) === new Date(job.stagingDate).setHours(0, 0, 0, 0)
+                                        ? "ring-2 ring-primary"
+                                        : ""
+                                    }`}
+                                    onClick={() => onNavigate("projectDetail", { project: job })}
+                                  >
+                                    <div className="flex items-start justify-between mb-2">
+                                      <h4 className="text-foreground text-sm font-medium">{job.jobName}</h4>
+                                      <Badge variant={job.stagingStatus === "staged" ? "default" : "secondary"} className="text-xs">
+                                        {job.stagingStatus === "staged" ? "Staged" : "Upcoming"}
+                                      </Badge>
+                                    </div>
+                                    <div className="flex items-center gap-2 text-muted-foreground text-xs mb-2">
+                                      <CalendarIcon className="w-3 h-3" />
+                                      <span>{format(job.stagingDate!, "MMM d, yyyy")}</span>
+                                    </div>
+                                    <div className="flex items-center justify-between text-xs">
+                                      <span className="text-muted-foreground">{projectItems.length} items</span>
+                                      {daysLeft !== null && daysLeft >= 0 && (
+                                        <span className={isUpcoming ? "text-chart-4" : "text-muted-foreground"}>
+                                          {isUpcoming ? `${Math.max(0, Math.ceil((job.stagingDate!.getTime() - new Date().getTime()) / (1000 * 60 * 60 * 24)))}d away` : `${daysLeft}d left`}
+                                        </span>
+                                      )}
+                                    </div>
+                                  </Card>
+                                </motion.div>
+                              );
+                            })}
+                          {activeProjects.filter(job => job.stagingDate).length === 0 && (
+                            <p className="text-muted-foreground text-sm text-center py-4">
+                              No projects with staging dates
+                            </p>
+                          )}
+                        </div>
+                      </Card>
+                    </div>
+                  )}
+                  {projectView === "card" && activeProjects.length === 0 && (
                     <Card className="bg-card border-border elevation-sm p-8 text-center mt-6">
                       <FolderPlus className="w-12 h-12 text-muted-foreground mx-auto mb-4" />
                       <h4 className="text-foreground mb-2">No Projects</h4>
@@ -721,9 +844,18 @@ export function Dashboard({ onNavigate, jobAssignments }: DashboardProps) {
                       )}
                     </Card>
                   )}
+                  {projectView === "calendar" && activeProjects.filter(job => job.stagingDate).length === 0 && (
+                    <Card className="bg-card border-border elevation-sm p-8 text-center mt-6">
+                      <CalendarIcon className="w-12 h-12 text-muted-foreground mx-auto mb-4" />
+                      <h4 className="text-foreground mb-2">No Projects with Dates</h4>
+                      <p className="text-muted-foreground mb-4">
+                        Projects need staging dates to appear on the calendar view.
+                      </p>
+                    </Card>
+                  )}
                   {hasMoreProjects && (
                     <div className="flex justify-center mt-6">
-                      <Button variant="outline" onClick={() => onNavigate("inUse")}>
+                      <Button variant="outline" onClick={() => onNavigate("allProjects")}>
                         View All {filteredProjects.length} Projects
                       </Button>
                     </div>

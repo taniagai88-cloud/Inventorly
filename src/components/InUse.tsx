@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { motion } from "motion/react";
-import { LayoutGrid, List, MapPin, Calendar, User, Package } from "lucide-react";
+import { LayoutGrid, List, MapPin, Calendar, User, Package, ArrowLeft } from "lucide-react";
 import { Card } from "./ui/card";
 import { Button } from "./ui/button";
 import { Badge } from "./ui/badge";
@@ -29,6 +29,18 @@ export function InUse({ items, onNavigate }: InUseProps) {
 
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+      {/* Back Button */}
+      <div className="mb-4">
+        <Button
+          variant="ghost"
+          onClick={() => onNavigate("dashboard")}
+          className="gap-2"
+        >
+          <ArrowLeft className="w-4 h-4" />
+          Back
+        </Button>
+      </div>
+
       {/* Header */}
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-8">
         <div>

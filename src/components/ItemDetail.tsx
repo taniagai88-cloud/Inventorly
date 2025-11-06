@@ -78,13 +78,16 @@ export function ItemDetail({ item, onNavigate, onDelete }: ItemDetailProps) {
           animate={{ opacity: 1, y: 0 }}
         >
           {/* Back Button */}
-          <button
-            onClick={() => onNavigate("library")}
-            className="flex items-center gap-2 text-muted-foreground hover:text-foreground mb-6"
-          >
-            <ArrowLeft className="w-4 h-4" />
-            <span>Back to Library</span>
-          </button>
+          <div className="mb-4">
+            <Button
+              variant="ghost"
+              onClick={() => onNavigate("library")}
+              className="gap-2"
+            >
+              <ArrowLeft className="w-4 h-4" />
+              Back
+            </Button>
+          </div>
 
           {/* Header */}
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 mb-8">

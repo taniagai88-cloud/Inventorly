@@ -144,8 +144,7 @@ export function ProjectsSection({
       <div className="flex items-start justify-between mb-4">
         <div>
           <div className="flex items-center gap-2 mb-1">
-            <h2 className="text-foreground">Active Projects</h2>
-            <Badge variant="secondary">{stagedProjectsCount} Staged</Badge>
+            <h2 className="text-foreground">Projects</h2>
           </div>
           <p className="text-muted-foreground">Track staging timelines and item allocation</p>
         </div>
@@ -206,13 +205,13 @@ export function ProjectsSection({
               transition={{ delay: index * 0.1 }}
             >
               <Card 
-                className="bg-card border-border elevation-sm p-6 cursor-pointer hover:elevation-md transition-shadow"
+                className="bg-card border-border elevation-sm p-6 cursor-pointer hover:elevation-md transition-shadow group"
                 onClick={() => onNavigate("projectDetail", { project: job })}
               >
                 <div className="flex items-start justify-between mb-4">
                   <div>
-                    <h3 className="text-foreground mb-1">{job.jobName}</h3>
-                    <div className="flex items-center gap-1 text-muted-foreground">
+                    <h3 className="text-foreground mb-1 group-hover:text-white transition-colors">{job.jobName}</h3>
+                    <div className="flex items-center gap-1 text-muted-foreground group-hover:text-white transition-colors">
                       <MapPin className="w-3 h-3" />
                       <p>{job.jobLocation}</p>
                     </div>
@@ -224,12 +223,12 @@ export function ProjectsSection({
 
                 {job.stagingDate && (
                   <div className="flex items-center gap-4 mb-4 pb-4 border-b border-border">
-                    <div className="flex items-center gap-2 text-muted-foreground">
+                    <div className="flex items-center gap-2 text-muted-foreground group-hover:text-white transition-colors">
                       <CalendarIcon className="w-4 h-4" />
                       <span>{format(job.stagingDate, "MMM d, yyyy")}</span>
                     </div>
                     {daysLeft !== null && daysLeft >= 0 && (
-                      <div className={`flex items-center gap-1 ${isUpcoming ? 'text-chart-4' : 'text-muted-foreground'}`}>
+                      <div className={`flex items-center gap-1 ${isUpcoming ? 'text-chart-4' : 'text-muted-foreground'} group-hover:text-white transition-colors`}>
                         <Clock className="w-4 h-4" />
                         <span>
                           {isUpcoming ? `${7 - Math.floor((new Date().getTime() - job.stagingDate.getTime()) / (1000 * 60 * 60 * 24))} days` : `${daysLeft}d left`}
@@ -240,7 +239,7 @@ export function ProjectsSection({
                 )}
 
                 <div className="space-y-2">
-                  <div className="flex items-center justify-between text-muted-foreground">
+                  <div className="flex items-center justify-between text-muted-foreground group-hover:text-white transition-colors">
                     <span>Items</span>
                     <span>{projectItems.length} assigned</span>
                   </div>
@@ -276,7 +275,7 @@ export function ProjectsSection({
 
       {hasMoreProjects && (
         <div className="flex justify-center mt-6">
-          <Button variant="outline" onClick={() => onNavigate("inUse")}>
+          <Button variant="outline" onClick={() => onNavigate("allProjects")}>
             View All {filteredProjects?.length} Projects
           </Button>
         </div>

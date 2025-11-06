@@ -118,21 +118,24 @@ export function AddItem({ onNavigate, onSave }: AddItemProps) {
     <div className="min-h-screen bg-background">
       <div className="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         {/* Back Button */}
-        <button
-          onClick={() => {
-            if (step === "photo") {
-              onNavigate("dashboard");
-            } else if (step === "tags") {
-              setStep("photo");
-            } else if (step === "review") {
-              setStep("tags");
-            }
-          }}
-          className="flex items-center gap-2 text-muted-foreground hover:text-foreground mb-6"
-        >
-          <ArrowLeft className="w-4 h-4" />
-          <span>Back</span>
-        </button>
+        <div className="mb-4">
+          <Button
+            variant="ghost"
+            onClick={() => {
+              if (step === "photo") {
+                onNavigate("library");
+              } else if (step === "tags") {
+                setStep("photo");
+              } else if (step === "review") {
+                setStep("tags");
+              }
+            }}
+            className="gap-2"
+          >
+            <ArrowLeft className="w-4 h-4" />
+            Back
+          </Button>
+        </div>
 
         {/* Progress Indicator */}
         <div className="flex items-center justify-center gap-4 mb-8">

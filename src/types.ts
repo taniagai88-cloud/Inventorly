@@ -12,7 +12,8 @@ export type AppState =
   | "itemDetail"
   | "assignToJob"
   | "reports"
-  | "projectDetail";
+  | "projectDetail"
+  | "allProjects";
 
 export type AuthMode = "signup" | "signin";
 
@@ -56,6 +57,8 @@ export interface JobAssignment {
   shortAddress?: string;
   fullAddress?: string;
   itemIds?: string[];
+  roomAssignments?: Record<string, string[]>; // Maps room names to item IDs
+  roomPricing?: Record<string, { price: number; quantity: number }>; // Stores room pricing for invoices
 }
 
 export interface UsageHistoryEntry {

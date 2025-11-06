@@ -29,7 +29,7 @@ export function AssignToJob({ item, onNavigate, onCreateJob }: AssignToJobProps)
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
-    if (!jobName || !jobLocation || !stagingDate) {
+    if (!jobName || !jobLocation) {
       toast.error("Please fill in all required fields");
       return;
     }
@@ -44,20 +44,26 @@ export function AssignToJob({ item, onNavigate, onCreateJob }: AssignToJobProps)
     // Simulate API call
     await new Promise((resolve) => setTimeout(resolve, 1500));
 
+    // Use stagingDate if provided, otherwise use today's date
+    const startDate = stagingDate || new Date();
+    const endDate = stagingDate 
+      ? new Date(stagingDate.getTime() + 30 * 24 * 60 * 60 * 1000) // 30 days from staging
+      : new Date(startDate.getTime() + 30 * 24 * 60 * 60 * 1000); // 30 days from start
+
     // Create new job assignment
     const newJob: JobAssignment = {
       id: `job-${Date.now()}`,
       itemId: item?.id || "",
       jobName,
       jobLocation,
-      startDate: stagingDate,
-      endDate: new Date(stagingDate.getTime() + 30 * 24 * 60 * 60 * 1000), // 30 days from staging
+      startDate: startDate,
+      endDate: endDate,
       quantity: item ? parseInt(quantity) : 0,
       notes,
       assignedBy: "Current User",
       status: "active",
       stagingDate: stagingDate,
-      stagingStatus: "upcoming",
+      stagingStatus: stagingDate ? "upcoming" : undefined,
       clientName: jobName,
       shortAddress: jobLocation.split(",")[0],
       fullAddress: jobLocation,
@@ -83,13 +89,16 @@ export function AssignToJob({ item, onNavigate, onCreateJob }: AssignToJobProps)
           animate={{ opacity: 1, y: 0 }}
         >
           {/* Back Button */}
-          <button
-            onClick={() => onNavigate(item ? "itemDetail" : "dashboard")}
-            className="flex items-center gap-2 text-muted-foreground hover:text-foreground mb-6"
-          >
-            <ArrowLeft className="w-4 h-4" />
-            <span>Back</span>
-          </button>
+          <div className="mb-4">
+            <Button
+              variant="ghost"
+              onClick={() => onNavigate(item ? "itemDetail" : "library")}
+              className="gap-2"
+            >
+              <ArrowLeft className="w-4 h-4" />
+              Back
+            </Button>
+          </div>
 
           <h2 className="text-foreground mb-6">Assign to Job</h2>
 
@@ -141,7 +150,7 @@ export function AssignToJob({ item, onNavigate, onCreateJob }: AssignToJobProps)
 
               <div className="space-y-2">
                 <Label>
-                  Requested Staging Date <span className="text-destructive">*</span>
+                  Requested Staging Date
                 </Label>
                 <Popover>
                   <PopoverTrigger asChild>
@@ -207,7 +216,6 @@ export function AssignToJob({ item, onNavigate, onCreateJob }: AssignToJobProps)
                     isLoading ||
                     !jobName ||
                     !jobLocation ||
-                    !stagingDate ||
                     (item && parseInt(quantity) > item.availableQuantity)
                   }
                   className="flex-1"

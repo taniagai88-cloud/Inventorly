@@ -1,0 +1,14 @@
+/* Ensure all text inside highlighted SelectItem is white */
+[data-slot="select-item"][data-highlighted] {
+  color: white !important;
+}
+
+[data-slot="select-item"][data-highlighted] * {
+  color: white !important;
+}
+
+[data-slot="select-item"][data-highlighted] span {
+  color: white !important;
+}
+
+

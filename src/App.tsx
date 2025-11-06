@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import React, { useState, useEffect } from "react";
 import { Toaster } from "./components/ui/sonner";
 import { AuthScreen } from "./components/AuthScreen";
 import { VerificationScreen } from "./components/VerificationScreen";
@@ -13,6 +13,7 @@ import { ItemDetail } from "./components/ItemDetail";
 import { AssignToJob } from "./components/AssignToJob";
 import { ReportsInsights } from "./components/ReportsInsights";
 import { ProjectDetail } from "./components/ProjectDetail";
+import { AllProjects } from "./components/AllProjects";
 import type { AppState, AuthMode, UserData, InventoryItem, JobAssignment } from "./types";
 import { mockInventoryItems, mockJobAssignments } from "./mockData";
 
@@ -97,6 +98,10 @@ export default function App() {
     setJobAssignments((prev) => 
       prev.map((job) => (job.id === updatedJob.id ? updatedJob : job))
     );
+    // Update selected project if it's the one being updated
+    if (selectedProject && selectedProject.id === updatedJob.id) {
+      setSelectedProject(updatedJob);
+    }
   };
 
   // Auto-transition from loading to dashboard
@@ -114,7 +119,12 @@ export default function App() {
     appState === "library" ||
     appState === "inUse" ||
     appState === "reports" ||
-    appState === "projectDetail";
+    appState === "projectDetail" ||
+    appState === "allProjects" ||
+    appState === "addItem" ||
+    appState === "bulkUpload" ||
+    appState === "itemDetail" ||
+    appState === "assignToJob";
 
   return (
     <div className="min-h-screen bg-background">
@@ -202,6 +212,14 @@ export default function App() {
         <ProjectDetail
           project={selectedProject}
           items={inventoryItems}
+          onNavigate={handleNavigate}
+          onUpdateJob={handleUpdateJob}
+        />
+      )}
+
+      {appState === "allProjects" && (
+        <AllProjects
+          jobAssignments={jobAssignments}
           onNavigate={handleNavigate}
         />
       )}

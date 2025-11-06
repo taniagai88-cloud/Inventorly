@@ -507,8 +507,7 @@ export function GridDashboard({ onNavigate, jobAssignments }: DashboardProps) {
                 <div className="flex items-start justify-between" style={{ marginBottom: 'var(--spacing-4)' }}>
                   <div>
                     <div className="flex items-center" style={{ gap: 'var(--spacing-2)', marginBottom: 'var(--spacing-1)' }}>
-                      <h2 className="text-foreground">Active Projects</h2>
-                      <Badge variant="secondary">{stagedProjectsCount} Staged</Badge>
+                      <h2 className="text-foreground">Projects</h2>
                     </div>
                     <p className="text-muted-foreground">Track staging timelines</p>
                   </div>
@@ -538,14 +537,14 @@ export function GridDashboard({ onNavigate, jobAssignments }: DashboardProps) {
                     return (
                       <div
                         key={job.id}
-                        className="border border-border cursor-pointer hover:bg-muted transition-colors"
+                        className="border border-border cursor-pointer hover:bg-muted transition-colors group"
                         style={{ padding: 'var(--spacing-4)', borderRadius: 'var(--radius-lg)' }}
                         onClick={() => onNavigate("projectDetail", { project: job })}
                       >
                         <div className="flex items-start justify-between" style={{ marginBottom: 'var(--spacing-3)' }}>
                           <div className="flex-1">
-                            <h4 className="text-foreground" style={{ marginBottom: 'var(--spacing-1)' }}>{job.jobName}</h4>
-                            <div className="flex items-center text-muted-foreground" style={{ gap: 'var(--spacing-1)' }}>
+                            <h4 className="text-foreground group-hover:text-white transition-colors" style={{ marginBottom: 'var(--spacing-1)' }}>{job.jobName}</h4>
+                            <div className="flex items-center text-muted-foreground group-hover:text-white transition-colors" style={{ gap: 'var(--spacing-1)' }}>
                               <MapPin className="w-3 h-3" />
                               <p>{job.jobLocation}</p>
                             </div>
@@ -556,7 +555,7 @@ export function GridDashboard({ onNavigate, jobAssignments }: DashboardProps) {
                         </div>
 
                         {job.stagingDate && (
-                          <div className="flex items-center text-muted-foreground" style={{ gap: 'var(--spacing-2)', marginBottom: 'var(--spacing-2)' }}>
+                          <div className="flex items-center text-muted-foreground group-hover:text-white transition-colors" style={{ gap: 'var(--spacing-2)', marginBottom: 'var(--spacing-2)' }}>
                             <CalendarIcon className="w-3 h-3" />
                             <span>{format(job.stagingDate, "MMM d")}</span>
                             {daysLeft !== null && daysLeft >= 0 && (
@@ -568,7 +567,7 @@ export function GridDashboard({ onNavigate, jobAssignments }: DashboardProps) {
                           </div>
                         )}
 
-                        <p className="text-muted-foreground">{projectItems.length} items</p>
+                        <p className="text-muted-foreground group-hover:text-white transition-colors">{projectItems.length} items</p>
                       </div>
                     );
                   })}
@@ -583,8 +582,8 @@ export function GridDashboard({ onNavigate, jobAssignments }: DashboardProps) {
 
                 {hasMoreProjects && (
                   <div className="flex justify-center" style={{ marginTop: 'var(--spacing-4)' }}>
-                    <Button variant="outline" size="sm" onClick={() => onNavigate("inUse")}>
-                      View All {filteredProjects.length}
+                    <Button variant="outline" size="sm" onClick={() => onNavigate("allProjects")}>
+                      View All {filteredProjects.length} Projects
                     </Button>
                   </div>
                 )}

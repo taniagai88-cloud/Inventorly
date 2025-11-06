@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { motion, AnimatePresence } from "motion/react";
-import { Search, Package, MapPin, Activity, Clock, ShoppingCart, Plus, Truck, Calendar as CalendarIcon, ChevronDown } from "lucide-react";
+import { Search, Package, MapPin, Activity, Clock, ShoppingCart, Plus, Truck, Calendar as CalendarIcon, ChevronDown, ArrowLeft } from "lucide-react";
 import { Input } from "./ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "./ui/select";
 import { Card } from "./ui/card";
@@ -177,6 +177,18 @@ export function InventoryLibrary({ items, onNavigate, initialFilter = "all", job
 
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+      {/* Back Button */}
+      <div className="mb-4">
+        <Button
+          variant="ghost"
+          onClick={() => onNavigate("dashboard")}
+          className="gap-2"
+        >
+          <ArrowLeft className="w-4 h-4" />
+          Back
+        </Button>
+      </div>
+
       <motion.div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
