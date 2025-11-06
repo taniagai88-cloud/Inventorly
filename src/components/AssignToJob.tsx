@@ -11,6 +11,7 @@ import { Popover, PopoverContent, PopoverTrigger } from "./ui/popover";
 import { toast } from "sonner@2.0.3";
 import { format } from "date-fns";
 import type { AppState, InventoryItem, JobAssignment } from "../types";
+import { getSetting } from "../utils/settings";
 
 interface AssignToJobProps {
   item?: InventoryItem;
@@ -45,10 +46,11 @@ export function AssignToJob({ item, onNavigate, onCreateJob }: AssignToJobProps)
     await new Promise((resolve) => setTimeout(resolve, 1500));
 
     // Use stagingDate if provided, otherwise use today's date
+    const contractDuration = getSetting("contractDuration");
     const startDate = stagingDate || new Date();
     const endDate = stagingDate 
-      ? new Date(stagingDate.getTime() + 30 * 24 * 60 * 60 * 1000) // 30 days from staging
-      : new Date(startDate.getTime() + 30 * 24 * 60 * 60 * 1000); // 30 days from start
+      ? new Date(stagingDate.getTime() + contractDuration * 24 * 60 * 60 * 1000) // Contract duration from settings
+      : new Date(startDate.getTime() + contractDuration * 24 * 60 * 60 * 1000); // Contract duration from settings
 
     // Create new job assignment
     const newJob: JobAssignment = {

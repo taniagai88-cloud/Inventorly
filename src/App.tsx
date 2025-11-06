@@ -14,6 +14,7 @@ import { AssignToJob } from "./components/AssignToJob";
 import { ReportsInsights } from "./components/ReportsInsights";
 import { ProjectDetail } from "./components/ProjectDetail";
 import { AllProjects } from "./components/AllProjects";
+import { Settings } from "./components/Settings";
 import type { AppState, AuthMode, UserData, InventoryItem, JobAssignment } from "./types";
 import { mockInventoryItems, mockJobAssignments } from "./mockData";
 
@@ -124,7 +125,8 @@ export default function App() {
     appState === "addItem" ||
     appState === "bulkUpload" ||
     appState === "itemDetail" ||
-    appState === "assignToJob";
+    appState === "assignToJob" ||
+    appState === "settings";
 
   return (
     <div className="min-h-screen bg-background">
@@ -222,6 +224,10 @@ export default function App() {
           jobAssignments={jobAssignments}
           onNavigate={handleNavigate}
         />
+      )}
+
+      {appState === "settings" && (
+        <Settings onNavigate={handleNavigate} />
       )}
 
       <Toaster />

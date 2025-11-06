@@ -90,6 +90,18 @@ const DEFAULT_LAYOUTS = {
 };
 
 export function GridDashboard({ onNavigate, jobAssignments }: DashboardProps) {
+  // Real-time date state that updates every minute
+  const [currentDate, setCurrentDate] = useState(new Date());
+  
+  // Update current date every minute for real-time calculations
+  useEffect(() => {
+    const interval = setInterval(() => {
+      setCurrentDate(new Date());
+    }, 60000); // Update every minute
+    
+    return () => clearInterval(interval);
+  }, []);
+  
   const [scrollPosition, setScrollPosition] = useState(0);
   const [sortOrder, setSortOrder] = useState<"earliest" | "latest">("earliest");
   const [projectFilter, setProjectFilter] = useState<"all" | "staged" | "upcoming">("all");
@@ -174,7 +186,7 @@ export function GridDashboard({ onNavigate, jobAssignments }: DashboardProps) {
 
   const getDaysLeft = (stagingDate?: Date) => {
     if (!stagingDate) return null;
-    const today = new Date();
+    const today = currentDate;
     const contractEndDate = new Date(stagingDate);
     contractEndDate.setDate(contractEndDate.getDate() + 45);
     const diffTime = contractEndDate.getTime() - today.getTime();
@@ -561,7 +573,7 @@ export function GridDashboard({ onNavigate, jobAssignments }: DashboardProps) {
                             {daysLeft !== null && daysLeft >= 0 && (
                               <>
                                 <Clock className="w-3 h-3" />
-                                <span>{isUpcoming ? `${Math.max(0, Math.ceil((job.stagingDate.getTime() - new Date().getTime()) / (1000 * 60 * 60 * 24)))}d` : `${daysLeft}d left`}</span>
+                                <span>{isUpcoming ? `${Math.max(0, Math.ceil((job.stagingDate.getTime() - currentDate.getTime()) / (1000 * 60 * 60 * 24)))}d` : `${daysLeft}d left`}</span>
                               </>
                             )}
                           </div>

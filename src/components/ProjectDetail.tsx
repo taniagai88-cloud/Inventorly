@@ -12,8 +12,10 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from 
 import { Input } from "./ui/input";
 import { Label } from "./ui/label";
 import { Checkbox } from "./ui/checkbox";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "./ui/select";
 import type { AppState, JobAssignment, InventoryItem } from "../types";
 import { getProjectItemIds, isProjectStaged } from "../utils/projectUtils";
+import { getRoomPricing, getSetting } from "../utils/settings";
 
 interface ProjectDetailProps {
   project: JobAssignment;
@@ -23,7 +25,8 @@ interface ProjectDetailProps {
 }
 
 // Default rooms for staging projects - defined outside component to avoid re-creation
-const defaultRooms = ["Living Room", "Dining Room", "Bathroom", "Bedroom", "Kitchen", "Office", "Other"];
+// Bedrooms are split into three sizes
+const defaultRooms = ["Living Room", "Dining Room", "Bathroom", "Bedroom (Small)", "Bedroom (Medium)", "Bedroom (Large)", "Kitchen", "Office", "Other"];
 
 // Base pricing for default rooms - defined outside component to avoid re-creation
 const baseRoomPricing: Record<string, number> = {
@@ -47,16 +50,29 @@ const formatCurrency = (amount: number): string => {
 };
 
 export function ProjectDetail({ project, items, onNavigate, onUpdateJob }: ProjectDetailProps) {
+  // Real-time date state that updates every minute
+  const [currentDate, setCurrentDate] = useState(new Date());
+  
+  // Update current date every minute for real-time calculations
+  useEffect(() => {
+    const interval = setInterval(() => {
+      setCurrentDate(new Date());
+    }, 60000); // Update every minute
+    
+    return () => clearInterval(interval);
+  }, []);
+  
   // Get items assigned to this project (only if staging date has passed)
   const projectItemIds = getProjectItemIds(project);
   const projectItems = items.filter(item => projectItemIds.includes(item.id));
   const isStaged = isProjectStaged(project);
   
-  // Calculate days remaining (45-day contract from staging date)
-  const today = new Date();
-  const contractEndDate = project.stagingDate ? new Date(project.stagingDate.getTime() + 45 * 24 * 60 * 60 * 1000) : project.endDate;
+  // Calculate days remaining (contract duration from settings) using real-time date
+  const today = currentDate;
+  const contractDuration = getSetting("contractDuration");
+  const contractEndDate = project.stagingDate ? new Date(project.stagingDate.getTime() + contractDuration * 24 * 60 * 60 * 1000) : project.endDate;
   const daysRemaining = differenceInDays(contractEndDate, today);
-  const totalDays = 45; // All staging contracts are 45 days
+  const totalDays = contractDuration; // Contract duration from settings
   const daysElapsed = totalDays - daysRemaining;
   const progressPercentage = Math.min(Math.max((daysElapsed / totalDays) * 100, 0), 100);
 
@@ -102,6 +118,20 @@ export function ProjectDetail({ project, items, onNavigate, onUpdateJob }: Proje
   // All rooms (default + custom)
   const allRooms = [...defaultRooms, ...customRooms];
   
+  // Helper function to check if a room is a bedroom variant
+  const isBedroomVariant = (room: string): boolean => {
+    return room.startsWith("Bedroom (");
+  };
+
+  // Helper function to get bedroom size from room name
+  const getBedroomSize = (room: string): "small" | "medium" | "large" | null => {
+    if (room === "Bedroom (Small)") return "small";
+    if (room === "Bedroom (Medium)") return "medium";
+    if (room === "Bedroom (Large)") return "large";
+    if (room === "Bedroom") return "medium"; // Legacy support
+    return null;
+  };
+  
   // Room quantities state - track quantity for each room
   // Initialize with saved quantities from project if available
   const [roomQuantities, setRoomQuantities] = useState<Record<string, number>>(() => {
@@ -128,7 +158,7 @@ export function ProjectDetail({ project, items, onNavigate, onUpdateJob }: Proje
   });
 
   // Room pricing state - track price for each room
-  // Initialize with saved pricing from project if available, otherwise use base pricing
+  // Initialize with saved pricing from project if available, otherwise use base pricing from settings
   const [roomPrices, setRoomPrices] = useState<Record<string, number>>(() => {
     const initial: Record<string, number> = {};
     const allRoomsList = [...defaultRooms, ...existingRooms.filter(r => !defaultRooms.includes(r))];
@@ -139,14 +169,16 @@ export function ProjectDetail({ project, items, onNavigate, onUpdateJob }: Proje
         if (project.roomPricing![room]) {
           initial[room] = project.roomPricing![room].price;
         } else {
-          // Use base pricing if not in saved pricing
-          initial[room] = baseRoomPricing[room] || 0;
+          // Use base pricing from settings if not in saved pricing
+          const roomPricingFromSettings = getRoomPricing("medium");
+          initial[room] = roomPricingFromSettings[room] || 0;
         }
       });
     } else {
-      // Otherwise, use base pricing
+      // Otherwise, use base pricing from settings
+      const roomPricingFromSettings = getRoomPricing("medium");
       allRoomsList.forEach(room => {
-        initial[room] = baseRoomPricing[room] || 0;
+        initial[room] = roomPricingFromSettings[room] || 0;
       });
     }
     return initial;
@@ -261,20 +293,22 @@ export function ProjectDetail({ project, items, onNavigate, onUpdateJob }: Proje
     }, 0);
   };
 
-  // Room pricing state: { roomName: { price: number, quantity: number } }
+  // Room pricing state: { roomName: { price: number, quantity: number, size?: "small" | "medium" | "large" } }
   // Initialize from saved project pricing if available, otherwise use base pricing
-  const [roomPricing, setRoomPricing] = useState<Record<string, { price: number; quantity: number }>>(() => {
+  const [roomPricing, setRoomPricing] = useState<Record<string, { price: number; quantity: number; size?: "small" | "medium" | "large" }>>(() => {
     // First, try to load from saved project data
     if (project.roomPricing && Object.keys(project.roomPricing).length > 0) {
       return { ...project.roomPricing };
     }
     
     // Otherwise, initialize with base pricing for selected rooms
-    const initial: Record<string, { price: number; quantity: number }> = {};
+    const initial: Record<string, { price: number; quantity: number; size?: "small" | "medium" | "large" }> = {};
     const selectedRoomsList = existingRooms.length > 0 ? existingRooms : [];
     
     selectedRoomsList.forEach(room => {
-      const basePrice = getRoomBasePrice(room);
+      // Get pricing from settings
+      const roomPricingFromSettings = getRoomPricing("medium");
+      const basePrice = roomPricingFromSettings[room] || 0;
       // Calculate base price from items if no room assignments
       const itemsInRoom = projectItems.filter(item => {
         // Simple heuristic for room assignment
@@ -296,38 +330,44 @@ export function ProjectDetail({ project, items, onNavigate, onUpdateJob }: Proje
         return sum + (item.purchaseCost * quantity);
       }, 0);
       
-      // Use calculated price if available, otherwise use base pricing, otherwise 0
-      const price = calculatedPrice > 0 ? calculatedPrice : (baseRoomPricing[room] || basePrice || 0);
+      // Use calculated price if available, otherwise use base pricing from settings, otherwise 0
+      const price = calculatedPrice > 0 ? calculatedPrice : (roomPricingFromSettings[room] || basePrice || 0);
       if (price > 0) {
-        initial[room] = { price, quantity: 1 };
+        // Extract size from bedroom variant names
+        const bedroomSize = getBedroomSize(room);
+        initial[room] = { 
+          price, 
+          quantity: 1, 
+          size: bedroomSize || undefined 
+        };
       }
     });
     return initial;
   });
 
-  // Sync prices from roomPricing state or use base pricing
+  // Sync prices from settings - ensure prices always reflect current settings
+  // This runs when rooms are selected
   useEffect(() => {
     setRoomPrices(prev => {
       const updated = { ...prev };
       const allRoomsList = [...defaultRooms, ...customRooms];
+      const roomPricingFromSettings = getRoomPricing("medium");
+      
       allRoomsList.forEach(room => {
-        // First check if there's saved pricing from roomPricing
-        if (Object.keys(roomPricing).length > 0 && roomPricing[room]?.price) {
-          const existingPrice = roomPricing[room].price;
-          if (existingPrice > 0) {
-            updated[room] = existingPrice;
-          }
-        } else if (!updated[room] || updated[room] === 0) {
-          // If no saved price, use base pricing for default rooms
-          if (defaultRooms.includes(room) && baseRoomPricing[room]) {
-            updated[room] = baseRoomPricing[room];
+        // Only update prices for selected rooms that don't have manually edited prices
+        // OR for rooms that are being initialized
+        if (selectedRooms.includes(room) || !prev[room] || prev[room] === 0) {
+          const priceFromSettings = roomPricingFromSettings[room] || 0;
+          // Only update if we don't have a saved price from project, or if price is 0
+          if (!project.roomPricing?.[room]?.price || prev[room] === 0) {
+            updated[room] = priceFromSettings;
           }
         }
       });
       return updated;
     });
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [roomPricing, customRooms]);
+  }, [selectedRooms, customRooms]);
 
   const [invoiceDialogOpen, setInvoiceDialogOpen] = useState(false);
   const invoiceContentRef = useRef<HTMLDivElement>(null);
@@ -449,9 +489,9 @@ export function ProjectDetail({ project, items, onNavigate, onUpdateJob }: Proje
   const invoiceRooms = getInvoiceRooms();
   const subtotal = invoiceRooms.reduce((sum, room) => sum + room.total, 0);
   
-  // Delivery and pickup fees (always included)
-  const deliveryFee = 400;
-  const pickupFee = 400;
+  // Delivery and pickup fees from settings
+  const deliveryFee = getSetting("deliveryFee");
+  const pickupFee = getSetting("pickupFee");
   const feesSubtotal = subtotal + deliveryFee + pickupFee;
   
   // Get tax rate based on location (default to 10% if not found)
@@ -522,7 +562,7 @@ export function ProjectDetail({ project, items, onNavigate, onUpdateJob }: Proje
       // First, try to use saved pricing from project
       if (project.roomPricing && Object.keys(project.roomPricing).length > 0) {
         // Only include rooms that are selected
-        const initial: Record<string, { price: number; quantity: number }> = {};
+        const initial: Record<string, { price: number; quantity: number; size?: "small" | "medium" | "large" }> = {};
         Object.entries(project.roomPricing).forEach(([room, data]) => {
           if (selectedRooms.includes(room) && data.quantity > 0 && data.price > 0) {
             initial[room] = { ...data };
@@ -533,11 +573,12 @@ export function ProjectDetail({ project, items, onNavigate, onUpdateJob }: Proje
       }
       
       // Otherwise, use current roomPrices and roomQuantities
-      const initial: Record<string, { price: number; quantity: number }> = {};
+      const initial: Record<string, { price: number; quantity: number; size?: "small" | "medium" | "large" }> = {};
       allRooms.forEach(room => {
         const isSelected = selectedRooms.includes(room);
         const savedPrice = roomPrices[room] || 0;
         const savedQuantity = roomQuantities[room] || 0;
+        const bedroomSize = getBedroomSize(room);
         
         // Only include rooms that are selected OR have saved quantities > 0
         if (isSelected || savedQuantity > 0) {
@@ -545,20 +586,25 @@ export function ProjectDetail({ project, items, onNavigate, onUpdateJob }: Proje
             // Use saved pricing and quantity
             initial[room] = { 
               price: savedPrice, 
-              quantity: savedQuantity > 0 ? savedQuantity : 1 
+              quantity: savedQuantity > 0 ? savedQuantity : 1,
+              size: bedroomSize || undefined
             };
           } else if (isSelected) {
-            // If selected but no saved price, use base pricing for default rooms
-            if (defaultRooms.includes(room) && baseRoomPricing[room]) {
-              initial[room] = { 
-                price: baseRoomPricing[room], 
-                quantity: 1 
-              };
-            } else if (defaultRooms.includes(room)) {
-              // Fallback to calculated base price if no base pricing
-              const basePrice = getRoomBasePrice(room);
-              if (basePrice > 0) {
-                initial[room] = { price: basePrice, quantity: 1 };
+            // If selected but no saved price, use base pricing from settings for default rooms
+            if (defaultRooms.includes(room)) {
+              const roomPricingFromSettings = getRoomPricing("medium");
+              if (roomPricingFromSettings[room]) {
+                initial[room] = { 
+                  price: roomPricingFromSettings[room], 
+                  quantity: 1,
+                  size: bedroomSize || undefined
+                };
+              } else {
+                // Fallback to calculated base price if no base pricing from settings
+                const basePrice = getRoomBasePrice(room);
+                if (basePrice > 0) {
+                  initial[room] = { price: basePrice, quantity: 1, size: bedroomSize || undefined };
+                }
               }
             }
           }
@@ -596,8 +642,8 @@ export function ProjectDetail({ project, items, onNavigate, onUpdateJob }: Proje
     // Generate invoice as PDF or text file
     const invoiceText = `
 INVOICE
-Invoice #: INV-${project.id.slice(0, 8).toUpperCase()}-${format(new Date(), "yyyyMMdd")}
-Date: ${format(new Date(), "MMMM d, yyyy")}
+    Invoice #: INV-${project.id.slice(0, 8).toUpperCase()}-${format(currentDate, "yyyyMMdd")}
+Date: ${format(currentDate, "MMMM d, yyyy")}
 Total Amount: ${formatCurrency(total)}
 
 BILL TO:
@@ -624,7 +670,7 @@ Total: ${formatCurrency(total)}
     const url = URL.createObjectURL(blob);
     const link = document.createElement('a');
     link.href = url;
-    link.download = `Invoice-${project.jobName.replace(/\s+/g, '-')}-${format(new Date(), "yyyy-MM-dd")}.txt`;
+    link.download = `Invoice-${project.jobName.replace(/\s+/g, '-')}-${format(currentDate, "yyyy-MM-dd")}.txt`;
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
@@ -668,7 +714,7 @@ Total: ${formatCurrency(total)}
                 {(() => {
                   // Calculate days until staging if not yet staged
                   const daysUntilStaging = project.stagingDate 
-                    ? differenceInDays(project.stagingDate, today)
+                    ? differenceInDays(project.stagingDate, currentDate)
                     : null;
                   
                   if (!isStaged && daysUntilStaging !== null && daysUntilStaging > 0) {
@@ -722,8 +768,8 @@ Total: ${formatCurrency(total)}
                     {/* Invoice Header */}
                     <div className="invoice-header">
                       <div>
-                        <h3 className="text-foreground font-semibold mb-2 text-lg">Invoice #{`INV-${project.id.slice(0, 8).toUpperCase()}-${format(new Date(), "yyyyMMdd")}`}</h3>
-                        <p className="text-muted-foreground text-sm">Date: {format(new Date(), "MMMM d, yyyy")}</p>
+                        <h3 className="text-foreground font-semibold mb-2 text-lg">Invoice #{`INV-${project.id.slice(0, 8).toUpperCase()}-${format(currentDate, "yyyyMMdd")}`}</h3>
+                        <p className="text-muted-foreground text-sm">Date: {format(currentDate, "MMMM d, yyyy")}</p>
                         <div className="mt-4">
                           <h4 className="text-foreground font-medium mb-2 text-sm">Bill To:</h4>
                           <p className="text-muted-foreground text-sm">{project.clientName || "Client"}</p>
@@ -747,8 +793,9 @@ Total: ${formatCurrency(total)}
                       </thead>
                       <tbody>
                         {allRooms.filter(room => selectedRooms.includes(room)).map((room) => {
-                          const roomData = roomPricing[room] || { price: 0, quantity: 0 };
+                          const roomData = roomPricing[room] || { price: 0, quantity: 0, size: undefined };
                           const lineTotal = (roomData.price || 0) * (roomData.quantity || 0);
+                          // Room name already includes size for bedroom variants, so no need for additional label
 
                           return (
                             <tr key={room}>
@@ -943,13 +990,15 @@ Total: ${formatCurrency(total)}
                           }
                         });
 
-                        // Store pricing data for invoice use
-                        const pricingData: Record<string, { price: number; quantity: number }> = {};
+                        // Store pricing data for invoice use (including size)
+                        const pricingData: Record<string, { price: number; quantity: number; size?: "small" | "medium" | "large" }> = {};
                         Object.entries(roomQuantities).forEach(([room, qty]) => {
                           if (qty > 0) {
+                            const bedroomSize = getBedroomSize(room);
                             pricingData[room] = {
                               price: roomPrices[room] || 0,
-                              quantity: qty,
+                              quantity: qty as number,
+                              size: bedroomSize || undefined,
                             };
                           }
                         });
@@ -994,6 +1043,10 @@ Total: ${formatCurrency(total)}
                             if (checked) {
                               setSelectedRooms([...selectedRooms, room]);
                               setRoomQuantities(prev => ({ ...prev, [room]: prev[room] || 1 }));
+                              // Initialize price from settings when room is selected
+                              const roomPricingFromSettings = getRoomPricing("medium");
+                              const basePrice = roomPricingFromSettings[room] || 0;
+                              setRoomPrices(prev => ({ ...prev, [room]: basePrice }));
                             } else {
                               setSelectedRooms(selectedRooms.filter((r) => r !== room));
                               setRoomQuantities(prev => ({ ...prev, [room]: 0 }));

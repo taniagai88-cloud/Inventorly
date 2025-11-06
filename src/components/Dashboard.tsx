@@ -80,6 +80,18 @@ const DEFAULT_SECTION_ORDER: SectionKey[] = [
 ];
 
 export function Dashboard({ onNavigate, jobAssignments }: DashboardProps) {
+  // Real-time date state that updates every minute
+  const [currentDate, setCurrentDate] = useState(new Date());
+  
+  // Update current date every minute for real-time calculations
+  useEffect(() => {
+    const interval = setInterval(() => {
+      setCurrentDate(new Date());
+    }, 60000); // Update every minute
+    
+    return () => clearInterval(interval);
+  }, []);
+  
   const [scrollPosition, setScrollPosition] = useState(0);
   const [selectedItem, setSelectedItem] = useState<InventoryItem | null>(null);
   const [assignDialogOpen, setAssignDialogOpen] = useState(false);
@@ -200,10 +212,10 @@ export function Dashboard({ onNavigate, jobAssignments }: DashboardProps) {
   const activeProjects = filteredProjects.slice(0, 3);
   const hasMoreProjects = filteredProjects.length > 3;
   
-  // Calculate days left in 45-day contract from staging date
+  // Calculate days left in contract from staging date using real-time date
   const getDaysLeft = (stagingDate?: Date) => {
     if (!stagingDate) return null;
-    const today = new Date();
+    const today = currentDate;
     const contractEndDate = new Date(stagingDate);
     contractEndDate.setDate(contractEndDate.getDate() + 45);
     const diffTime = contractEndDate.getTime() - today.getTime();
@@ -711,7 +723,7 @@ export function Dashboard({ onNavigate, jobAssignments }: DashboardProps) {
                                   {daysLeft !== null && daysLeft >= 0 && (
                                     <div className={`flex items-center gap-1 ${isUpcoming ? 'text-chart-4' : 'text-muted-foreground'}`}>
                                       <Clock className="w-4 h-4" />
-                                      <span>{isUpcoming ? `${7 - Math.floor((new Date().getTime() - job.stagingDate.getTime()) / (1000 * 60 * 60 * 24))} days` : `${daysLeft}d left`}</span>
+                                      <span>{isUpcoming ? `${Math.max(0, Math.ceil((job.stagingDate.getTime() - currentDate.getTime()) / (1000 * 60 * 60 * 24)))} days` : `${daysLeft}d left`}</span>
                                     </div>
                                   )}
                                 </div>
@@ -810,7 +822,7 @@ export function Dashboard({ onNavigate, jobAssignments }: DashboardProps) {
                                       <span className="text-muted-foreground">{projectItems.length} items</span>
                                       {daysLeft !== null && daysLeft >= 0 && (
                                         <span className={isUpcoming ? "text-chart-4" : "text-muted-foreground"}>
-                                          {isUpcoming ? `${Math.max(0, Math.ceil((job.stagingDate!.getTime() - new Date().getTime()) / (1000 * 60 * 60 * 24)))}d away` : `${daysLeft}d left`}
+                                          {isUpcoming ? `${Math.max(0, Math.ceil((job.stagingDate!.getTime() - currentDate.getTime()) / (1000 * 60 * 60 * 24)))}d away` : `${daysLeft}d left`}
                                         </span>
                                       )}
                                     </div>

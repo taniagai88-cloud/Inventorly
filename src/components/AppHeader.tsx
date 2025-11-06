@@ -12,6 +12,7 @@ export function AppHeader({ user, currentState, onNavigate }: AppHeaderProps) {
     { label: "Dashboard", state: "dashboard" as AppState },
     { label: "Inventory Library", state: "library" as AppState },
     { label: "Reports & Insights", state: "reports" as AppState },
+    { label: "Settings", state: "settings" as AppState },
   ];
 
   return (
