@@ -36,6 +36,16 @@ const baseRoomPricing: Record<string, number> = {
   "Other": 0,
 };
 
+// Currency formatter function
+const formatCurrency = (amount: number): string => {
+  return new Intl.NumberFormat('en-US', {
+    style: 'currency',
+    currency: 'USD',
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2,
+  }).format(amount);
+};
+
 export function ProjectDetail({ project, items, onNavigate, onUpdateJob }: ProjectDetailProps) {
   // Get items assigned to this project (only if staging date has passed)
   const projectItemIds = getProjectItemIds(project);
@@ -588,7 +598,7 @@ export function ProjectDetail({ project, items, onNavigate, onUpdateJob }: Proje
 INVOICE
 Invoice #: INV-${project.id.slice(0, 8).toUpperCase()}-${format(new Date(), "yyyyMMdd")}
 Date: ${format(new Date(), "MMMM d, yyyy")}
-Total Amount: $${total.toFixed(2)}
+Total Amount: ${formatCurrency(total)}
 
 BILL TO:
 ${project.clientName || "Client"}
@@ -600,14 +610,14 @@ ${project.jobName}
 ITEMS:
 
 ${invoiceRooms.map(room => 
-  `${room.quantity} ${room.room}${room.quantity > 1 ? 's' : ''} @ $${room.price.toFixed(2)} = $${room.total.toFixed(2)}`
+  `${room.quantity} ${room.room}${room.quantity > 1 ? 's' : ''} @ ${formatCurrency(room.price)} = ${formatCurrency(room.total)}`
 ).join('\n')}
 
-Subtotal: $${subtotal.toFixed(2)}
-Delivery Fee: $${deliveryFee.toFixed(2)}
-Pickup Fee: $${pickupFee.toFixed(2)}
-Tax (${(taxRate * 100).toFixed(2)}%): $${tax.toFixed(2)}
-Total: $${total.toFixed(2)}
+Subtotal: ${formatCurrency(subtotal)}
+Delivery Fee: ${formatCurrency(deliveryFee)}
+Pickup Fee: ${formatCurrency(pickupFee)}
+Tax (${(taxRate * 100).toFixed(2)}%): ${formatCurrency(tax)}
+Total: ${formatCurrency(total)}
 `;
 
     const blob = new Blob([invoiceText], { type: 'text/plain' });
@@ -701,183 +711,111 @@ Total: $${total.toFixed(2)}
                     Send Invoice
                   </Button>
                 </DialogTrigger>
-                <DialogContent className={`max-w-[95vw] w-[95vw] max-h-[90vh] p-0 ${isDesktop ? 'overflow-hidden' : 'overflow-y-auto'}`}>
-                  <div className={`w-full ${isDesktop ? 'h-full flex items-start justify-center' : ''}`} style={isDesktop ? { minHeight: '90vh' } : {}}>
-                    <div 
-                      ref={invoiceContentRef}
-                      className="w-full"
-                      style={{
-                        transform: isDesktop ? `scale(${scale})` : 'none',
-                        transformOrigin: 'top center',
-                        transition: 'transform 0.2s ease-out',
-                        willChange: isDesktop ? 'transform' : 'auto',
-                      }}
-                    >
-                      <div className="p-6 space-y-6">
-                        <DialogHeader>
-                          <DialogTitle>Invoice</DialogTitle>
-                        </DialogHeader>
+                <DialogContent 
+                  className="invoice-modal"
+                >
+                  <div className="modal-content">
+                    <DialogHeader>
+                      <DialogTitle>Invoice</DialogTitle>
+                    </DialogHeader>
+                    
                     {/* Invoice Header */}
-                    <div className="flex justify-between items-start">
+                    <div className="invoice-header">
                       <div>
-                        <h3 className="text-foreground font-semibold mb-2">Invoice #{`INV-${project.id.slice(0, 8).toUpperCase()}-${format(new Date(), "yyyyMMdd")}`}</h3>
-                        <p className="text-muted-foreground">Date: {format(new Date(), "MMMM d, yyyy")}</p>
+                        <h3 className="text-foreground font-semibold mb-2 text-lg">Invoice #{`INV-${project.id.slice(0, 8).toUpperCase()}-${format(new Date(), "yyyyMMdd")}`}</h3>
+                        <p className="text-muted-foreground text-sm">Date: {format(new Date(), "MMMM d, yyyy")}</p>
+                        <div className="mt-4">
+                          <h4 className="text-foreground font-medium mb-2 text-sm">Bill To:</h4>
+                          <p className="text-muted-foreground text-sm">{project.clientName || "Client"}</p>
+                          <p className="text-muted-foreground text-sm">{project.fullAddress || project.jobLocation}</p>
+                        </div>
                       </div>
                       <div className="text-right">
-                        <p className="text-foreground font-semibold">{project.jobName}</p>
-                        <p className="text-foreground text-2xl font-bold mt-2">${total.toFixed(2)}</p>
-                        <p className="text-muted-foreground text-sm">Total Amount</p>
+                        <p className="text-foreground font-semibold text-base mb-4">{project.jobName}</p>
                       </div>
                     </div>
 
-                    {/* Bill To */}
-                    <div>
-                      <h4 className="text-foreground font-medium mb-2">Bill To:</h4>
-                      <p className="text-muted-foreground">{project.clientName || "Client"}</p>
-                      <p className="text-muted-foreground">{project.fullAddress || project.jobLocation}</p>
-                    </div>
+                    {/* Invoice Summary Table */}
+                    <table className="invoice-table">
+                      <thead>
+                        <tr>
+                          <th>QTY</th>
+                          <th>DESCRIPTION</th>
+                          <th>UNIT PRICE</th>
+                          <th>AMOUNT</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {allRooms.filter(room => selectedRooms.includes(room)).map((room) => {
+                          const roomData = roomPricing[room] || { price: 0, quantity: 0 };
+                          const lineTotal = (roomData.price || 0) * (roomData.quantity || 0);
 
-                    {/* Room Pricing */}
-                    <div>
-                      <h4 className="text-foreground font-medium mb-3">Rooms:</h4>
-                      <div className="border border-border rounded-lg overflow-hidden">
-                        <table className="w-full table-fixed">
-                          <colgroup>
-                            <col className="w-[20%]" />
-                            <col className="w-[30%]" />
-                            <col className="w-[30%]" />
-                            <col className="w-[20%]" />
-                          </colgroup>
-                          <thead className="bg-muted">
-                            <tr>
-                              <th className="text-left p-4 text-sm font-medium text-foreground">Room</th>
-                              <th className="text-center p-4 text-sm font-medium text-foreground">Quantity</th>
-                              <th className="text-left p-4 text-sm font-medium text-foreground">Price</th>
-                              <th className="text-right p-4 text-sm font-medium text-foreground">Total</th>
+                          return (
+                            <tr key={room}>
+                              <td data-label="QTY">{roomData.quantity || 0}</td>
+                              <td data-label="DESCRIPTION">{room}</td>
+                              <td data-label="UNIT PRICE">{formatCurrency(roomData.price || 0)}</td>
+                              <td data-label="AMOUNT">{formatCurrency(lineTotal)}</td>
                             </tr>
-                          </thead>
-                          <tbody>
-                            {allRooms.map((room, index) => {
-                              const roomData = roomPricing[room] || { price: 0, quantity: 0 };
-                              const total = (roomData.price || 0) * (roomData.quantity || 0);
+                          );
+                        })}
+                      </tbody>
+                    </table>
 
-                              return (
-                                <tr key={room} className={index < allRooms.length - 1 ? "border-b border-border" : ""}>
-                                  <td className="p-4 align-middle">
-                                    <span className="text-foreground font-medium text-sm">{room}</span>
-                                  </td>
-                                  <td className="p-4 align-middle">
-                                    <div className="flex items-center justify-center gap-2">
-                                      <Button
-                                        variant="outline"
-                                        size="sm"
-                                        onClick={() => updateRoomQuantity(room, -1)}
-                                        disabled={roomData.quantity <= 0}
-                                        className="h-9 w-9 p-0 shrink-0"
-                                      >
-                                        <Minus className="w-4 h-4" />
-                                      </Button>
-                                      <Input
-                                        type="number"
-                                        min="0"
-                                        value={roomData.quantity || ""}
-                                        onChange={(e) => {
-                                          const qty = parseInt(e.target.value) || 0;
-                                          setRoomPricing(prev => ({
-                                            ...prev,
-                                            [room]: { ...(prev[room] || { price: 0 }), quantity: Math.max(0, qty) },
-                                          }));
-                                        }}
-                                        className="w-16 text-center h-9"
-                                      />
-                                      <Button
-                                        variant="outline"
-                                        size="sm"
-                                        onClick={() => updateRoomQuantity(room, 1)}
-                                        className="h-9 w-9 p-0 shrink-0"
-                                      >
-                                        <Plus className="w-4 h-4" />
-                                      </Button>
-                                    </div>
-                                  </td>
-                                  <td className="p-4 align-middle">
-                                    <div className="flex items-center gap-1.5">
-                                      <span className="text-muted-foreground text-sm flex items-center h-9">$</span>
-                                      <Input
-                                        type="number"
-                                        min="0"
-                                        step="0.01"
-                                        value={roomData.price || ""}
-                                        onChange={(e) => {
-                                          const price = parseFloat(e.target.value) || 0;
-                                          updateRoomPrice(room, price);
-                                        }}
-                                        placeholder="0.00"
-                                        className="w-full max-w-32 h-9"
-                                      />
-                                    </div>
-                                  </td>
-                                  <td className="p-4 text-right align-middle">
-                                    <span className="text-foreground font-medium">
-                                      ${total.toFixed(2)}
-                                    </span>
-                                  </td>
-                                </tr>
-                              );
-                            })}
-                          </tbody>
-                        </table>
-                      </div>
+                    {/* Total Amount Display */}
+                    <div className="invoice-total">
+                      <div className="label">Total Amount</div>
+                      <div className="amount">{formatCurrency(total)}</div>
                     </div>
 
                     {/* Totals */}
-                    <div className="flex justify-end">
-                      <div className="w-64 space-y-2">
-                        <div className="flex justify-between text-muted-foreground">
-                          <span>Subtotal:</span>
-                          <span>${subtotal.toFixed(2)}</span>
-                        </div>
-                        <div className="flex justify-between text-muted-foreground">
-                          <span>Delivery Fee:</span>
-                          <span>${deliveryFee.toFixed(2)}</span>
-                        </div>
-                        <div className="flex justify-between text-muted-foreground">
-                          <span>Pickup Fee:</span>
-                          <span>${pickupFee.toFixed(2)}</span>
-                        </div>
-                        <div className="flex justify-between text-muted-foreground">
-                          <span>Tax ({(taxRate * 100).toFixed(2)}%):</span>
-                          <span>${tax.toFixed(2)}</span>
-                        </div>
-                        <div className="flex justify-between text-foreground font-semibold text-lg border-t border-border pt-2">
-                          <span>Total:</span>
-                          <span>${total.toFixed(2)}</span>
+                    <div className="pt-6 border-t border-border">
+                      <div className="flex justify-end">
+                        <div className="w-full max-w-sm space-y-2">
+                          <div className="flex justify-between text-muted-foreground text-sm">
+                            <span>Subtotal:</span>
+                            <span>{formatCurrency(subtotal)}</span>
+                          </div>
+                          <div className="flex justify-between text-muted-foreground text-sm">
+                            <span>Delivery Fee:</span>
+                            <span>{formatCurrency(deliveryFee)}</span>
+                          </div>
+                          <div className="flex justify-between text-muted-foreground text-sm">
+                            <span>Pickup Fee:</span>
+                            <span>{formatCurrency(pickupFee)}</span>
+                          </div>
+                          <div className="flex justify-between text-muted-foreground text-sm">
+                            <span>Tax ({(taxRate * 100).toFixed(2)}%):</span>
+                            <span>{formatCurrency(tax)}</span>
+                          </div>
+                          <div className="flex justify-between text-foreground font-semibold text-lg border-t border-border pt-2 mt-2">
+                            <span>Total:</span>
+                            <span>{formatCurrency(total)}</span>
+                          </div>
                         </div>
                       </div>
                     </div>
 
-                        {/* Actions */}
-                        <div className="flex gap-3 justify-end pt-4 border-t border-border">
-                          <Button
-                            variant="outline"
-                            onClick={handleDownloadInvoice}
-                            className="gap-2"
-                          >
-                            <FileText className="w-4 h-4" />
-                            Download
-                          </Button>
-                          <Button
-                            onClick={() => {
-                              handleEmailInvoice();
-                              setInvoiceDialogOpen(false);
-                            }}
-                            className="gap-2"
-                          >
-                            <Mail className="w-4 h-4" />
-                            Send Email
-                          </Button>
-                        </div>
-                      </div>
+                    {/* Actions */}
+                    <div className="flex gap-3 justify-end pt-4 border-t border-border">
+                      <Button
+                        variant="outline"
+                        onClick={handleDownloadInvoice}
+                        className="gap-2"
+                      >
+                        <FileText className="w-4 h-4" />
+                        Download
+                      </Button>
+                      <Button
+                        onClick={() => {
+                          handleEmailInvoice();
+                          setInvoiceDialogOpen(false);
+                        }}
+                        className="gap-2"
+                      >
+                        <Mail className="w-4 h-4" />
+                        Send Email
+                      </Button>
                     </div>
                   </div>
                 </DialogContent>

@@ -310,3 +310,316 @@ html {
     font-size: var(--text-xs);
   }
 }
+
+/* Invoice Modal Styles - Override default dialog */
+[data-slot="dialog-content"].invoice-modal {
+  position: fixed !important;
+  inset: 0 !important;
+  z-index: 50 !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  padding: 24px !important;
+  background: rgba(0, 0, 0, 0.3) !important;
+  top: 0 !important;
+  left: 0 !important;
+  right: 0 !important;
+  bottom: 0 !important;
+  transform: none !important;
+  translate: none !important;
+  max-width: none !important;
+  width: 100% !important;
+  height: 100% !important;
+  border: none !important;
+  box-shadow: none !important;
+}
+
+[data-slot="dialog-content"].invoice-modal .modal-content {
+  width: 100%;
+  max-width: 960px;
+  height: auto;
+  max-height: 90vh;
+  overflow-y: auto;
+  overflow-x: hidden;
+  background: var(--card);
+  border-radius: 12px;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.12);
+  padding: 32px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  position: relative;
+}
+
+.invoice-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 8px;
+}
+
+/* ===== Invoice Table Styling ===== */
+table.invoice-table {
+  width: 100% !important;
+  border-collapse: collapse !important;
+  border-spacing: 0 !important;
+  margin-top: 1.5rem !important;
+  font-family: 'Inter', sans-serif !important;
+  font-size: var(--text-base) !important;
+  line-height: 1.5 !important;
+  color: var(--foreground) !important;
+  display: table !important;
+  table-layout: fixed !important;
+}
+
+table.invoice-table thead {
+  display: table-header-group !important;
+}
+
+table.invoice-table tbody {
+  display: table-row-group !important;
+}
+
+table.invoice-table tr {
+  display: table-row !important;
+}
+
+table.invoice-table thead th {
+  text-align: left !important;
+  font-weight: var(--font-weight-semibold) !important;
+  font-size: var(--text-xs) !important;
+  color: var(--foreground) !important;
+  padding: 12px 0 !important;
+  border-bottom: 2px solid var(--border) !important;
+  text-transform: uppercase !important;
+  letter-spacing: 0.5px !important;
+  display: table-cell !important;
+  vertical-align: bottom !important;
+  white-space: nowrap !important;
+}
+
+table.invoice-table td {
+  padding: 12px 0 !important;
+  border-bottom: 1px solid var(--border) !important;
+  vertical-align: middle !important;
+  color: var(--foreground) !important;
+  font-size: var(--text-sm) !important;
+  font-weight: var(--font-weight-normal) !important;
+  display: table-cell !important;
+}
+
+/* QTY column - first column */
+table.invoice-table td:first-child,
+table.invoice-table th:first-child {
+  width: 60px !important;
+  min-width: 60px !important;
+  max-width: 60px !important;
+  text-align: center !important;
+  padding-left: 0 !important;
+  padding-right: 0 !important;
+}
+
+/* DESCRIPTION column - second column */
+table.invoice-table td:nth-child(2),
+table.invoice-table th:nth-child(2) {
+  text-align: left !important;
+  padding-left: 8px !important;
+  padding-right: 24px !important;
+}
+
+/* UNIT PRICE column - third column */
+table.invoice-table td:nth-child(3),
+table.invoice-table th:nth-child(3) {
+  text-align: right !important;
+  font-variant-numeric: tabular-nums !important;
+  padding-left: 24px !important;
+  padding-right: 24px !important;
+  width: 140px !important;
+  min-width: 140px !important;
+}
+
+/* AMOUNT column - fourth column */
+table.invoice-table td:nth-child(4),
+table.invoice-table th:nth-child(4) {
+  text-align: right !important;
+  font-variant-numeric: tabular-nums !important;
+  padding-left: 24px !important;
+  padding-right: 0 !important;
+  width: 140px !important;
+  min-width: 140px !important;
+}
+
+/* ===== Totals Section ===== */
+.invoice-total {
+  margin-top: 1.5rem !important;
+  text-align: left !important;
+}
+
+.invoice-total .label {
+  font-weight: var(--font-weight-normal) !important;
+  color: var(--foreground) !important;
+  font-size: var(--text-base) !important;
+  margin-bottom: 4px !important;
+}
+
+.invoice-total .amount {
+  font-weight: var(--font-weight-semibold) !important;
+  font-size: var(--text-base) !important;
+  font-variant-numeric: tabular-nums !important;
+  color: var(--foreground) !important;
+}
+
+/* ===== Responsive ===== */
+@media (max-width: 640px) {
+  table.invoice-table thead {
+    display: none !important;
+  }
+  table.invoice-table,
+  table.invoice-table tbody,
+  table.invoice-table tr,
+  table.invoice-table td {
+    display: block !important;
+    width: 100% !important;
+  }
+  table.invoice-table tr {
+    border-bottom: 1px solid var(--border) !important;
+    margin-bottom: 1rem !important;
+    display: block !important;
+  }
+  table.invoice-table td {
+    text-align: left !important;
+    padding: 6px 0 !important;
+    display: block !important;
+  }
+  table.invoice-table td::before {
+    content: attr(data-label) !important;
+    display: block !important;
+    font-weight: var(--font-weight-semibold) !important;
+    color: var(--muted-foreground) !important;
+    font-size: var(--text-xs) !important;
+    text-transform: uppercase !important;
+  }
+  .invoice-total {
+    text-align: left !important;
+  }
+}
+
+/* Room info styling for invoice */
+.room-info {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+}
+
+.room-name {
+  font-size: 16px;
+  font-weight: 400;
+  line-height: 1.5;
+  color: var(--foreground);
+}
+
+.room-unit {
+  display: none;
+}
+
+.qty {
+  display: flex;
+  align-items: center;
+  justify-content: flex-start;
+}
+
+.qty .num {
+  font-variant-numeric: tabular-nums;
+  font-size: 16px;
+  font-weight: 400;
+  text-align: left;
+  color: var(--foreground);
+}
+
+.line-total {
+  text-align: right;
+  font-size: 16px;
+  font-weight: 500;
+  color: var(--foreground);
+  font-variant-numeric: tabular-nums;
+}
+
+.total-amount-label {
+  color: var(--muted-foreground);
+  font-size: 14px;
+  font-weight: 400;
+  margin-bottom: 4px;
+}
+
+.total-amount {
+  font-size: 28px;
+  font-weight: 600;
+  text-align: right;
+  color: var(--foreground);
+  font-variant-numeric: tabular-nums;
+}
+
+.rooms-label {
+  font-size: 16px;
+  font-weight: 600;
+  color: var(--foreground);
+}
+
+.total-amount-wrap {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+}
+
+/* Mobile */
+@media (max-width: 768px) {
+  .invoice-summary-header,
+  .invoice-summary-row {
+    grid-template-columns: 1fr;
+    gap: 12px;
+  }
+
+  .invoice-summary-header {
+    padding-bottom: 12px;
+  }
+
+  .invoice-summary-row {
+    padding: 16px 0;
+  }
+
+  .invoice-summary-header-cell,
+  .invoice-summary-cell {
+    text-align: left !important;
+  }
+}
+
+/* Invoice Dialog Full Width Override (for backward compatibility) */
+.invoice-dialog-fullwidth {
+  width: 100vw !important;
+  max-width: none !important;
+  left: 0 !important;
+  right: 0 !important;
+  top: 2.5vh !important;
+  transform: none !important;
+  translate: none !important;
+  margin: 0 !important;
+  border-radius: 0 !important;
+}
+
+@media (min-width: 640px) {
+  .invoice-dialog-fullwidth {
+    max-width: none !important;
+  }
+}
+
+@media (min-width: 768px) {
+  .invoice-dialog-fullwidth {
+    max-width: none !important;
+  }
+}
+
+@media (min-width: 1024px) {
+  .invoice-dialog-fullwidth {
+    max-width: none !important;
+  }
+}
