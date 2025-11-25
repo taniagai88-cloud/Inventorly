@@ -824,6 +824,32 @@ table.invoice-table th:nth-child(4) {
   }
 }
 
+/* Visible scrollbar styling */
+.scrollbar-visible {
+  scrollbar-width: thin;
+  scrollbar-color: rgba(0, 0, 0, 0.4) rgba(0, 0, 0, 0.1);
+}
+
+.scrollbar-visible::-webkit-scrollbar {
+  width: 10px;
+}
+
+.scrollbar-visible::-webkit-scrollbar-track {
+  background: rgba(0, 0, 0, 0.05);
+  border-radius: 5px;
+}
+
+.scrollbar-visible::-webkit-scrollbar-thumb {
+  background-color: rgba(0, 0, 0, 0.4);
+  border-radius: 5px;
+  border: 2px solid transparent;
+  background-clip: padding-box;
+}
+
+.scrollbar-visible::-webkit-scrollbar-thumb:hover {
+  background-color: rgba(0, 0, 0, 0.6);
+}
+
 /* Touch manipulation utility */
 .touch-manipulation {
   touch-action: manipulation;
@@ -1067,7 +1093,7 @@ p, span, div, h1, h2, h3, h4, h5, h6 {
 }
 
 .layout .react-grid-item {
-  overflow: visible;
+  overflow: visible !important;
   min-height: 100px;
 }
 
@@ -1076,4 +1102,11 @@ p, span, div, h1, h2, h3, h4, h5, h6 {
   position: absolute !important;
   visibility: visible !important;
   opacity: 1 !important;
+  overflow: visible !important;
+}
+
+/* Allow grid items to expand with content */
+.react-grid-item > div {
+  overflow: visible !important;
+  height: auto !important;
 }

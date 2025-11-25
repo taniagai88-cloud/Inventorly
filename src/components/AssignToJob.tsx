@@ -446,7 +446,7 @@ export function AssignToJob({ item, onNavigate, onCreateJob, jobAssignments = []
           <div className="mb-4">
             <Button
               variant="ghost"
-              onClick={() => onNavigate("library")}
+              onClick={() => onNavigate("dashboard")}
               className="gap-2"
             >
               <ArrowLeft className="w-4 h-4" />
@@ -457,7 +457,8 @@ export function AssignToJob({ item, onNavigate, onCreateJob, jobAssignments = []
           <h2 className="text-lg sm:text-xl font-semibold text-foreground mb-4 sm:mb-6 leading-snug">Create New Project</h2>
 
           {/* Form */}
-          <Card className="bg-card border-border elevation-sm p-4 sm:p-6">
+          <div className="max-w-2xl mx-auto">
+            <Card className="bg-card border-border elevation-sm p-4 sm:p-6">
             <form onSubmit={handleSubmit} className="space-y-4 sm:space-y-6">
               <div className="space-y-2">
                 <Label htmlFor="clientName">
@@ -596,6 +597,7 @@ export function AssignToJob({ item, onNavigate, onCreateJob, jobAssignments = []
               </div>
             </form>
           </Card>
+          </div>
         </motion.div>
       </div>
     </div>

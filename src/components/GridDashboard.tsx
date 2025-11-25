@@ -64,48 +64,48 @@ const DEFAULT_SECTIONS: DashboardSections = {
 const DEFAULT_LAYOUTS = {
   /* 1920px+ (3xl) - 12 columns */
   lg: [
-    { i: "aiAssistant", x: 0, y: 0, w: 12, h: 4, minW: 6, minH: 3 },
-    { i: "projects", x: 0, y: 4, w: 12, h: 6, minW: 6, minH: 4 },
-    { i: "kpis", x: 0, y: 10, w: 12, h: 4, minW: 6, minH: 3 },
-    { i: "quickActions", x: 0, y: 14, w: 12, h: 2, minW: 6, minH: 2 },
-    { i: "topItems", x: 0, y: 16, w: 12, h: 6, minW: 6, minH: 5 },
-    { i: "insights", x: 0, y: 22, w: 12, h: 3, minW: 6, minH: 3 },
+    { i: "aiAssistant", x: 0, y: 0, w: 12, h: 8, minW: 6, minH: 3 },
+    { i: "projects", x: 0, y: 8, w: 12, h: 6, minW: 6, minH: 4 },
+    { i: "kpis", x: 0, y: 14, w: 12, h: 4, minW: 6, minH: 3 },
+    { i: "quickActions", x: 0, y: 18, w: 12, h: 2, minW: 6, minH: 2 },
+    { i: "topItems", x: 0, y: 20, w: 12, h: 10, minW: 6, minH: 5 },
+    { i: "insights", x: 0, y: 30, w: 12, h: 3, minW: 6, minH: 3 },
   ],
   /* 1280px-1919px (xl/2xl) - 10 columns */
   md: [
-    { i: "aiAssistant", x: 0, y: 0, w: 10, h: 4, minW: 5, minH: 3 },
-    { i: "projects", x: 0, y: 4, w: 10, h: 6, minW: 5, minH: 4 },
-    { i: "kpis", x: 0, y: 10, w: 10, h: 4, minW: 5, minH: 3 },
-    { i: "quickActions", x: 0, y: 14, w: 10, h: 2, minW: 5, minH: 2 },
-    { i: "topItems", x: 0, y: 16, w: 10, h: 6, minW: 5, minH: 5 },
-    { i: "insights", x: 0, y: 22, w: 10, h: 3, minW: 5, minH: 3 },
+    { i: "aiAssistant", x: 0, y: 0, w: 10, h: 8, minW: 5, minH: 3 },
+    { i: "projects", x: 0, y: 8, w: 10, h: 6, minW: 5, minH: 4 },
+    { i: "kpis", x: 0, y: 14, w: 10, h: 4, minW: 5, minH: 3 },
+    { i: "quickActions", x: 0, y: 18, w: 10, h: 2, minW: 5, minH: 2 },
+    { i: "topItems", x: 0, y: 20, w: 10, h: 10, minW: 5, minH: 5 },
+    { i: "insights", x: 0, y: 30, w: 10, h: 3, minW: 5, minH: 3 },
   ],
   /* 768px-1279px (tablet) - 6 columns */
   sm: [
-    { i: "aiAssistant", x: 0, y: 0, w: 6, h: 4, minW: 6, minH: 3 },
-    { i: "projects", x: 0, y: 4, w: 6, h: 7, minW: 6, minH: 5 },
-    { i: "kpis", x: 0, y: 11, w: 6, h: 5, minW: 6, minH: 4 },
-    { i: "quickActions", x: 0, y: 16, w: 6, h: 2, minW: 6, minH: 2 },
-    { i: "topItems", x: 0, y: 18, w: 6, h: 8, minW: 6, minH: 6 },
-    { i: "insights", x: 0, y: 26, w: 6, h: 3, minW: 6, minH: 3 },
+    { i: "aiAssistant", x: 0, y: 0, w: 6, h: 8, minW: 6, minH: 3 },
+    { i: "projects", x: 0, y: 8, w: 6, h: 7, minW: 6, minH: 5 },
+    { i: "kpis", x: 0, y: 15, w: 6, h: 5, minW: 6, minH: 4 },
+    { i: "quickActions", x: 0, y: 20, w: 6, h: 2, minW: 6, minH: 2 },
+    { i: "topItems", x: 0, y: 22, w: 6, h: 12, minW: 6, minH: 6 },
+    { i: "insights", x: 0, y: 34, w: 6, h: 3, minW: 6, minH: 3 },
   ],
   /* 414px-767px (medium mobile) - 4 columns */
   xs: [
-    { i: "aiAssistant", x: 0, y: 0, w: 4, h: 4, minW: 4, minH: 3 },
-    { i: "projects", x: 0, y: 4, w: 4, h: 7, minW: 4, minH: 5 },
-    { i: "kpis", x: 0, y: 11, w: 4, h: 5, minW: 4, minH: 4 },
-    { i: "quickActions", x: 0, y: 16, w: 4, h: 2, minW: 4, minH: 2 },
-    { i: "topItems", x: 0, y: 18, w: 4, h: 8, minW: 4, minH: 6 },
-    { i: "insights", x: 0, y: 26, w: 4, h: 3, minW: 4, minH: 3 },
+    { i: "aiAssistant", x: 0, y: 0, w: 4, h: 8, minW: 4, minH: 3 },
+    { i: "projects", x: 0, y: 8, w: 4, h: 7, minW: 4, minH: 5 },
+    { i: "kpis", x: 0, y: 15, w: 4, h: 5, minW: 4, minH: 4 },
+    { i: "quickActions", x: 0, y: 20, w: 4, h: 2, minW: 4, minH: 2 },
+    { i: "topItems", x: 0, y: 22, w: 4, h: 12, minW: 4, minH: 6 },
+    { i: "insights", x: 0, y: 34, w: 4, h: 3, minW: 4, minH: 3 },
   ],
   /* 320px-413px (small mobile) - 2 columns */
   xxs: [
-    { i: "aiAssistant", x: 0, y: 0, w: 2, h: 4, minW: 2, minH: 3 },
-    { i: "projects", x: 0, y: 4, w: 2, h: 7, minW: 2, minH: 5 },
-    { i: "kpis", x: 0, y: 11, w: 2, h: 5, minW: 2, minH: 4 },
-    { i: "quickActions", x: 0, y: 16, w: 2, h: 2, minW: 2, minH: 2 },
-    { i: "topItems", x: 0, y: 18, w: 2, h: 8, minW: 2, minH: 6 },
-    { i: "insights", x: 0, y: 26, w: 2, h: 3, minW: 2, minH: 3 },
+    { i: "aiAssistant", x: 0, y: 0, w: 2, h: 8, minW: 2, minH: 3 },
+    { i: "projects", x: 0, y: 8, w: 2, h: 7, minW: 2, minH: 5 },
+    { i: "kpis", x: 0, y: 15, w: 2, h: 5, minW: 2, minH: 4 },
+    { i: "quickActions", x: 0, y: 20, w: 2, h: 2, minW: 2, minH: 2 },
+    { i: "topItems", x: 0, y: 22, w: 2, h: 12, minW: 2, minH: 6 },
+    { i: "insights", x: 0, y: 34, w: 2, h: 3, minW: 2, minH: 3 },
   ],
 };
 
@@ -204,6 +204,163 @@ export function GridDashboard({ onNavigate, jobAssignments }: DashboardProps) {
       }
     }
   }, []);
+
+  // Prevent Insights from overlapping topItems - comprehensive JavaScript solution
+  // 
+  // CRITICAL: This effect MUST NOT call setLayouts to avoid infinite loops.
+  // 
+  // Anti-pattern to avoid:
+  //   useEffect(() => {
+  //     if (contentHeight > 50) {
+  //       setLayouts(newLayouts); // ❌ DON'T DO THIS if layouts is in dependency array
+  //     }
+  //   }, [layouts]); // ❌ This creates an infinite loop!
+  //
+  // Safe pattern (current implementation):
+  //   - Use DOM manipulation (style.setProperty) instead of state updates
+  //   - Depend only on visibleSections, not layouts
+  //   - If you must update layouts, use a ref or compare values before calling setLayouts
+  useEffect(() => {
+    if (!visibleSections.topItems || !visibleSections.insights) return;
+    
+    const preventOverlap = () => {
+      try {
+        // Find the grid items using multiple selectors for reliability
+        const topItemsGridItem = Array.from(document.querySelectorAll('.react-grid-item')).find(
+          (el) => {
+            const hasDataKey = el.querySelector('[data-grid-key="topItems"]');
+            const hasClass = el.querySelector('.top-items-expandable');
+            const hasKey = el.getAttribute('key') === 'topItems';
+            return hasDataKey || hasClass || hasKey;
+          }
+        );
+        
+        const insightsGridItem = Array.from(document.querySelectorAll('.react-grid-item')).find(
+          (el) => {
+            const hasDataKey = el.querySelector('[data-grid-key="insights"]');
+            const hasKey = el.getAttribute('key') === 'insights';
+            return hasDataKey || hasKey;
+          }
+        );
+        
+        if (!topItemsGridItem || !insightsGridItem) return;
+        
+        const layoutContainer = topItemsGridItem.closest('.react-grid-layout');
+        if (!layoutContainer) return;
+        
+        // Get actual rendered positions
+        const topItemsRect = topItemsGridItem.getBoundingClientRect();
+        const insightsRect = insightsGridItem.getBoundingClientRect();
+        const containerRect = layoutContainer.getBoundingClientRect();
+        
+        // Calculate positions relative to container
+        const topItemsBottom = topItemsRect.bottom - containerRect.top;
+        const insightsTop = insightsRect.top - containerRect.top;
+        const requiredSpacing = 40;
+        
+        // Always ensure topItems can expand
+        (topItemsGridItem as HTMLElement).style.setProperty('height', 'auto', 'important');
+        (topItemsGridItem as HTMLElement).style.setProperty('overflow', 'visible', 'important');
+        (topItemsGridItem as HTMLElement).style.setProperty('min-height', '100%', 'important');
+        
+        // Check for overlap and fix it
+        if (insightsTop < topItemsBottom + requiredSpacing) {
+          // Calculate how much to push Insights down
+          const pushDown = (topItemsBottom + requiredSpacing) - insightsTop;
+          
+          // Use multiple methods to ensure it sticks
+          (insightsGridItem as HTMLElement).style.setProperty('transform', `translateY(${pushDown}px)`, 'important');
+          (insightsGridItem as HTMLElement).style.setProperty('position', 'absolute', 'important');
+          (insightsGridItem as HTMLElement).style.setProperty('top', `${insightsTop + pushDown}px`, 'important');
+          (insightsGridItem as HTMLElement).style.setProperty('height', 'auto', 'important');
+          (insightsGridItem as HTMLElement).style.setProperty('overflow', 'visible', 'important');
+        } else {
+          // Reset transform if no overlap (but keep other styles)
+          const currentTransform = (insightsGridItem as HTMLElement).style.transform;
+          if (currentTransform && currentTransform.includes('translateY')) {
+            (insightsGridItem as HTMLElement).style.setProperty('transform', '', 'important');
+          }
+          (insightsGridItem as HTMLElement).style.setProperty('height', 'auto', 'important');
+          (insightsGridItem as HTMLElement).style.setProperty('overflow', 'visible', 'important');
+        }
+      } catch (e) {
+        // Silently fail if elements not found
+      }
+    };
+    
+    // Run immediately and set up multiple timeouts
+    preventOverlap();
+    const timeoutId1 = setTimeout(preventOverlap, 50);
+    const timeoutId2 = setTimeout(preventOverlap, 150);
+    const timeoutId3 = setTimeout(preventOverlap, 300);
+    const timeoutId4 = setTimeout(preventOverlap, 500);
+    
+    // Use ResizeObserver to watch for topItems height changes
+    let resizeObserver: ResizeObserver | null = null;
+    const topItemsElement = document.querySelector('.top-items-expandable') || document.querySelector('[data-grid-key="topItems"]');
+    if (topItemsElement && 'ResizeObserver' in window) {
+      resizeObserver = new ResizeObserver(() => {
+        preventOverlap();
+        setTimeout(preventOverlap, 50);
+        setTimeout(preventOverlap, 150);
+      });
+      resizeObserver.observe(topItemsElement);
+    }
+    
+    // Use MutationObserver to catch when react-grid-layout updates styles
+    let mutationObserver: MutationObserver | null = null;
+    const layoutContainer = document.querySelector('.react-grid-layout');
+    if (layoutContainer) {
+      mutationObserver = new MutationObserver(() => {
+        setTimeout(preventOverlap, 10);
+        setTimeout(preventOverlap, 50);
+        setTimeout(preventOverlap, 150);
+      });
+      mutationObserver.observe(layoutContainer, {
+        attributes: true,
+        attributeFilter: ['style'],
+        childList: true,
+        subtree: true,
+      });
+    }
+    
+    // Continuous monitoring with throttled requestAnimationFrame
+    let rafId: number | null = null;
+    let lastCheck = 0;
+    const runCheck = () => {
+      const now = Date.now();
+      if (now - lastCheck > 100) {
+        preventOverlap();
+        lastCheck = now;
+      }
+      rafId = requestAnimationFrame(runCheck);
+    };
+    rafId = requestAnimationFrame(runCheck);
+    
+    // Window resize handler
+    const resizeHandler = () => {
+      setTimeout(preventOverlap, 50);
+      setTimeout(preventOverlap, 200);
+    };
+    window.addEventListener('resize', resizeHandler);
+    
+    return () => {
+      clearTimeout(timeoutId1);
+      clearTimeout(timeoutId2);
+      clearTimeout(timeoutId3);
+      clearTimeout(timeoutId4);
+      if (rafId !== null) {
+        cancelAnimationFrame(rafId);
+      }
+      window.removeEventListener('resize', resizeHandler);
+      if (resizeObserver) {
+        resizeObserver.disconnect();
+      }
+      if (mutationObserver) {
+        mutationObserver.disconnect();
+      }
+    };
+  }, [visibleSections.topItems, visibleSections.insights]);
 
   const updateSectionVisibility = (section: keyof DashboardSections, visible: boolean) => {
     // Prevent hiding quickActions section
@@ -366,31 +523,31 @@ export function GridDashboard({ onNavigate, jobAssignments }: DashboardProps) {
   }
 
   return (
-    <div className="w-full max-w-[1920px] mx-auto px-3 sm:px-4 md:px-6 lg:px-8 xl:px-10 2xl:px-12 py-3 sm:py-4 md:py-6 lg:py-8 overflow-x-hidden">
+    <div className="w-full max-w-[1920px] mx-auto px-3 sm:px-4 md:px-6 lg:px-8 xl:px-10 2xl:px-12 pt-6 sm:pt-8 md:pt-10 lg:pt-12 pb-3 sm:pb-4 md:pb-6 lg:pb-8 overflow-x-hidden">
       {/* Header */}
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-4 sm:mb-6">
         <div>
           <h1 className="text-foreground text-xl sm:text-2xl mb-1">Dashboard</h1>
           <p className="text-muted-foreground text-sm hidden sm:block">Drag and resize sections to customize your layout</p>
         </div>
-        <div className="flex flex-wrap w-full sm:w-auto gap-2">
+        <div className="flex items-center gap-2">
           <Button
             variant={isEditMode ? "default" : "outline"}
             onClick={() => {
               setIsEditMode(!isEditMode);
               toast.success(isEditMode ? "Edit mode disabled" : "Edit mode enabled - drag to rearrange");
             }}
-            style={{ gap: 'var(--spacing-2)' }}
-            className="flex-1 sm:flex-initial min-h-[44px]"
+            size="sm"
+            className="gap-2 h-8 px-3 text-xs"
           >
-            <LayoutGrid className="w-4 h-4" />
+            <LayoutGrid className="w-3 h-3" />
             <span className="hidden sm:inline">{isEditMode ? "Done Editing" : "Edit Layout"}</span>
             <span className="sm:hidden">{isEditMode ? "Done" : "Edit"}</span>
           </Button>
           <Sheet open={customizeSheetOpen} onOpenChange={setCustomizeSheetOpen}>
             <SheetTrigger asChild>
-              <Button variant="outline" className="flex-1 sm:flex-initial min-h-[44px] gap-2">
-                <LayoutGrid className="w-4 h-4" />
+              <Button variant="outline" size="sm" className="gap-2 h-8 px-3 text-xs">
+                <LayoutGrid className="w-3 h-3" />
                 <span className="hidden sm:inline">Sections</span>
                 <span className="sm:hidden">Sections</span>
               </Button>
@@ -526,6 +683,7 @@ export function GridDashboard({ onNavigate, jobAssignments }: DashboardProps) {
             layouts={visibleLayouts}
             useCSSTransforms={false}
             measureBeforeMount={false}
+            autoSize={true}
             breakpoints={{ 
               lg: 1920,   // 1920px+
               md: 1280,   // 1280px-1919px
@@ -543,35 +701,97 @@ export function GridDashboard({ onNavigate, jobAssignments }: DashboardProps) {
             rowHeight={windowWidth < 414 ? 50 : windowWidth < 768 ? 55 : 60}
             isDraggable={isEditMode}
             isResizable={isEditMode}
-            onLayoutChange={handleLayoutChange}
+            onLayoutChange={(currentLayout, allLayouts) => {
+              handleLayoutChange(currentLayout, allLayouts);
+              // Prevent overlap after layout change
+              setTimeout(() => {
+                const topItemsGridItem = Array.from(document.querySelectorAll('.react-grid-item')).find(
+                  (el) => el.querySelector('[data-grid-key="topItems"]') || el.querySelector('.top-items-expandable') || el.getAttribute('key') === 'topItems'
+                );
+                const insightsGridItem = Array.from(document.querySelectorAll('.react-grid-item')).find(
+                  (el) => el.querySelector('[data-grid-key="insights"]') || el.getAttribute('key') === 'insights'
+                );
+                
+                if (topItemsGridItem && insightsGridItem) {
+                  const layoutContainer = topItemsGridItem.closest('.react-grid-layout');
+                  if (layoutContainer) {
+                    const topItemsRect = topItemsGridItem.getBoundingClientRect();
+                    const insightsRect = insightsGridItem.getBoundingClientRect();
+                    const containerRect = layoutContainer.getBoundingClientRect();
+                    
+                    const topItemsBottom = topItemsRect.bottom - containerRect.top;
+                    const insightsTop = insightsRect.top - containerRect.top;
+                    const requiredSpacing = 40;
+                    
+                    // Always ensure topItems can expand
+                    (topItemsGridItem as HTMLElement).style.setProperty('height', 'auto', 'important');
+                    (topItemsGridItem as HTMLElement).style.setProperty('overflow', 'visible', 'important');
+                    
+                    // Fix overlap if needed
+                    if (insightsTop < topItemsBottom + requiredSpacing) {
+                      const pushDown = (topItemsBottom + requiredSpacing) - insightsTop;
+                      (insightsGridItem as HTMLElement).style.setProperty('transform', `translateY(${pushDown}px)`, 'important');
+                      (insightsGridItem as HTMLElement).style.setProperty('position', 'absolute', 'important');
+                    }
+                  }
+                }
+              }, 10);
+              setTimeout(() => {
+                // Run again after a short delay to catch any delayed updates
+                const topItemsGridItem = Array.from(document.querySelectorAll('.react-grid-item')).find(
+                  (el) => el.querySelector('[data-grid-key="topItems"]') || el.querySelector('.top-items-expandable')
+                );
+                const insightsGridItem = Array.from(document.querySelectorAll('.react-grid-item')).find(
+                  (el) => el.querySelector('[data-grid-key="insights"]')
+                );
+                
+                if (topItemsGridItem && insightsGridItem) {
+                  const layoutContainer = topItemsGridItem.closest('.react-grid-layout');
+                  if (layoutContainer) {
+                    const topItemsRect = topItemsGridItem.getBoundingClientRect();
+                    const insightsRect = insightsGridItem.getBoundingClientRect();
+                    const containerRect = layoutContainer.getBoundingClientRect();
+                    
+                    const topItemsBottom = topItemsRect.bottom - containerRect.top;
+                    const insightsTop = insightsRect.top - containerRect.top;
+                    const requiredSpacing = 40;
+                    
+                    if (insightsTop < topItemsBottom + requiredSpacing) {
+                      const pushDown = (topItemsBottom + requiredSpacing) - insightsTop;
+                      (insightsGridItem as HTMLElement).style.setProperty('transform', `translateY(${pushDown}px)`, 'important');
+                    }
+                  }
+                }
+              }, 100);
+            }}
             draggableHandle=".drag-handle"
             compactType="vertical"
             preventCollision={false}
             margin={{
-              lg: [16, 16],   // 1920px+
-              md: [12, 12],   // 1280px-1919px
-              sm: [8, 8],     // 768px-1279px
-              xs: [6, 6],     // 414px-767px
-              xxs: [6, 6]     // 320px-413px
+              lg: [8, 6],     // 1920px+
+              md: [6, 6],     // 1280px-1919px
+              sm: [6, 4],     // 768px-1279px
+              xs: [4, 4],     // 414px-767px
+              xxs: [4, 2]     // 320px-413px
             }}
           >
           {visibleSections.kpis && (
             <div key="kpis">
-              <Card className={`bg-card border-border elevation-sm h-full p-4 sm:p-6 ${isEditMode ? 'cursor-move' : ''}`}>
+              <Card className={`bg-card border-border elevation-sm p-3 sm:p-4 ${isEditMode ? 'cursor-move' : ''}`}>
                 {isEditMode && (
-                  <div className="drag-handle flex items-center justify-center bg-muted cursor-move mb-4 p-2 rounded-lg">
+                  <div className="drag-handle flex items-center justify-center bg-muted cursor-move mb-2 p-1.5 rounded-lg">
                     <LayoutGrid className="w-4 h-4 text-muted-foreground mr-2" />
                     <span className="text-muted-foreground">Drag to move</span>
                   </div>
                 )}
-                <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-2 lg:grid-cols-4 h-full gap-3 sm:gap-4 md:gap-6">
+                <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4 md:gap-6">
                   {kpis.map((kpi) => (
                     <div
                       key={kpi.label}
-                      className="bg-card border border-border elevation-sm cursor-pointer hover:bg-muted/50 transition-colors touch-manipulation p-4 sm:p-6 rounded-lg"
+                      className="bg-card border border-border elevation-sm cursor-pointer hover:bg-muted/50 transition-colors touch-manipulation p-3 sm:p-4 rounded-lg"
                       onClick={kpi.onClick}
                     >
-                      <div className="flex items-start justify-between mb-4">
+                      <div className="flex items-start justify-between mb-2">
                         <kpi.icon className={`w-8 h-8 ${kpi.color}`} />
                         <div className="flex items-center gap-1">
                           {kpi.change > 0 ? (
@@ -595,14 +815,14 @@ export function GridDashboard({ onNavigate, jobAssignments }: DashboardProps) {
 
           {visibleSections.quickActions && (
             <div key="quickActions">
-              <Card className={`bg-card border-border elevation-sm h-full p-4 sm:p-6 ${isEditMode ? 'cursor-move' : ''}`}>
+              <Card className={`bg-card border-border elevation-sm p-3 sm:p-4 ${isEditMode ? 'cursor-move' : ''}`}>
                 {isEditMode && (
-                  <div className="drag-handle flex items-center justify-center bg-muted cursor-move mb-4 p-2 rounded-lg">
+                  <div className="drag-handle flex items-center justify-center bg-muted cursor-move mb-2 p-1.5 rounded-lg">
                     <LayoutGrid className="w-4 h-4 text-muted-foreground mr-2" />
                     <span className="text-muted-foreground">Drag to move</span>
                   </div>
                 )}
-                <div className="flex flex-col sm:flex-row h-full items-stretch sm:items-center justify-center gap-3 sm:gap-4">
+                <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-center gap-3 sm:gap-4">
                   <Button 
                     onClick={() => onNavigate("addItem")} 
                     className="flex-1 w-full bg-primary text-white hover:!bg-secondary transition-colors min-h-[44px] touch-manipulation"
@@ -620,10 +840,10 @@ export function GridDashboard({ onNavigate, jobAssignments }: DashboardProps) {
           )}
 
           {visibleSections.aiAssistant && (
-            <div key="aiAssistant">
-              <div className={`h-full ${isEditMode ? 'cursor-move' : ''}`}>
+            <div key="aiAssistant" className="ai-assistant-expandable">
+              <div className={isEditMode ? 'cursor-move' : ''}>
                 {isEditMode && (
-                  <div className="drag-handle flex items-center justify-center bg-muted cursor-move border border-border mb-4 p-2 rounded-lg">
+                  <div className="drag-handle flex items-center justify-center bg-muted cursor-move border border-border mb-2 p-1.5 rounded-lg">
                     <LayoutGrid className="w-4 h-4 text-muted-foreground mr-2" />
                     <span className="text-muted-foreground">Drag to move</span>
                   </div>
@@ -639,14 +859,14 @@ export function GridDashboard({ onNavigate, jobAssignments }: DashboardProps) {
 
           {visibleSections.projects && (
             <div key="projects">
-              <Card className={`bg-card border-border elevation-sm h-full overflow-auto p-4 sm:p-6 ${isEditMode ? 'cursor-move' : ''}`}>
+              <Card className={`bg-card border-border elevation-sm h-full overflow-auto p-3 sm:p-4 ${isEditMode ? 'cursor-move' : ''}`}>
                 {isEditMode && (
-                  <div className="drag-handle flex items-center justify-center bg-muted cursor-move mb-4 p-2 rounded-lg">
+                  <div className="drag-handle flex items-center justify-center bg-muted cursor-move mb-2 p-1.5 rounded-lg">
                     <LayoutGrid className="w-4 h-4 text-muted-foreground mr-2" />
                     <span className="text-muted-foreground">Drag to move</span>
                   </div>
                 )}
-                <div className="flex items-start justify-between mb-4">
+                <div className="flex items-start justify-between mb-2">
                   <div>
                     <div className="flex items-center gap-2 mb-1">
                       <h2 className="text-foreground">Projects</h2>
@@ -683,7 +903,7 @@ export function GridDashboard({ onNavigate, jobAssignments }: DashboardProps) {
                   </div>
                 </div>
 
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-2">
                   {activeProjects.map((job) => {
                     const projectItems = getProjectItemIds(job);
                     const daysLeft = getDaysLeft(job.stagingDate);
@@ -760,20 +980,34 @@ export function GridDashboard({ onNavigate, jobAssignments }: DashboardProps) {
           )}
 
           {visibleSections.topItems && (
-            <div key="topItems">
-              <Card className={`bg-card border-border elevation-sm h-full overflow-hidden flex flex-col p-4 sm:p-6 ${isEditMode ? 'cursor-move' : ''}`}>
+            <div 
+              key="topItems" 
+              ref={(node) => {
+                if (node) {
+                  // Override react-grid-layout's inline height style
+                  const gridItem = node.closest('.react-grid-item');
+                  if (gridItem) {
+                    (gridItem as HTMLElement).style.height = 'auto';
+                    (gridItem as HTMLElement).style.minHeight = '100%';
+                    (gridItem as HTMLElement).style.overflow = 'visible';
+                  }
+                }
+              }}
+              className="top-items-expandable"
+            >
+              <Card className={`bg-card border-border elevation-sm flex flex-col p-3 sm:p-4 ${isEditMode ? 'cursor-move' : ''}`}>
                 {isEditMode && (
-                  <div className="drag-handle flex items-center justify-center bg-muted cursor-move mb-4 p-2 rounded-lg flex-shrink-0">
+                  <div className="drag-handle flex items-center justify-center bg-muted cursor-move mb-2 p-1.5 rounded-lg flex-shrink-0">
                     <LayoutGrid className="w-4 h-4 text-muted-foreground mr-2" />
                     <span className="text-muted-foreground">Drag to move</span>
                   </div>
                 )}
-                <div className="mb-4 flex-shrink-0">
+                <div className="mb-2 flex-shrink-0">
                   <h2 className="text-foreground mb-1">Top 5 Most-Used</h2>
                   <p className="text-muted-foreground">Your most frequently used items</p>
                 </div>
 
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-3 sm:gap-4 flex-1 min-h-0 content-start">
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-3 sm:gap-4">
                   {topItems.map((item) => {
                     const status = getStockStatus(item);
                     return (
@@ -783,12 +1017,12 @@ export function GridDashboard({ onNavigate, jobAssignments }: DashboardProps) {
                         onClick={() => handleTopItemClick(item)}
                       >
                         <div className="relative mb-2 flex-shrink-0">
-                          <div className="w-full bg-white flex items-center justify-center overflow-hidden h-28 rounded-md">
+                          <div className="w-full aspect-square bg-white flex items-center justify-center overflow-hidden rounded-md p-4">
                             {item.imageUrl ? (
                               <ImageWithFallback
                                 src={item.imageUrl}
                                 alt={item.name}
-                                className="w-full h-full object-contain"
+                                className="w-full h-full object-contain max-w-[80%] max-h-[80%]"
                               />
                             ) : (
                               <Package className="w-8 h-8 text-muted-foreground" />
@@ -812,20 +1046,20 @@ export function GridDashboard({ onNavigate, jobAssignments }: DashboardProps) {
           )}
 
           {visibleSections.insights && (
-            <div key="insights">
-              <Card className={`bg-card border-border elevation-sm h-full p-4 sm:p-6 ${isEditMode ? 'cursor-move' : ''}`}>
+            <div key="insights" data-grid-key="insights">
+              <Card className={`bg-card border-border elevation-sm h-full p-3 sm:p-4 ${isEditMode ? 'cursor-move' : ''}`}>
                 {isEditMode && (
-                  <div className="drag-handle flex items-center justify-center bg-muted cursor-move mb-4 p-2 rounded-lg">
+                  <div className="drag-handle flex items-center justify-center bg-muted cursor-move mb-2 p-1.5 rounded-lg">
                     <LayoutGrid className="w-4 h-4 text-muted-foreground mr-2" />
                     <span className="text-muted-foreground">Drag to move</span>
                   </div>
                 )}
-                <div className="flex items-center gap-2 mb-4">
+                <div className="flex items-center gap-2 mb-2">
                   <TrendingUp className="w-5 h-5 text-primary" />
                   <h3 className="text-foreground">Insights</h3>
                 </div>
-                <h4 className="text-foreground mb-3">Usage Trends</h4>
-                <p className="text-muted-foreground mb-4">
+                <h4 className="text-foreground mb-2">Usage Trends</h4>
+                <p className="text-muted-foreground mb-2">
                   Your inventory utilization has increased by 8% this month. Professional Display Screens
                   and Modern Lounge Chairs are your most-used items.
                 </p>

@@ -508,12 +508,12 @@ export function Dashboard({ onNavigate, jobAssignments }: DashboardProps) {
                 onClick={() => handleTopItemClick(item)}
               >
                 <div className="relative mb-4">
-                  <div className="w-full h-40 bg-white rounded-lg flex items-center justify-center overflow-hidden">
+                  <div className="w-full aspect-square bg-white rounded-lg flex items-center justify-center overflow-hidden p-4">
                     {item.imageUrl ? (
                       <ImageWithFallback
                         src={item.imageUrl}
                         alt={item.name}
-                        className="w-full h-full object-contain"
+                        className="w-full h-full object-contain max-w-[80%] max-h-[80%]"
                       />
                     ) : (
                       <Package className="w-12 h-12 text-muted-foreground" />
@@ -976,12 +976,12 @@ export function Dashboard({ onNavigate, jobAssignments }: DashboardProps) {
                           onClick={() => handleTopItemClick(item)}
                         >
                           <div className="relative mb-4">
-                            <div className="w-full h-40 bg-white rounded-lg flex items-center justify-center overflow-hidden">
+                            <div className="w-full aspect-square bg-white rounded-lg flex items-center justify-center overflow-hidden p-4">
                               {item.imageUrl ? (
                                 <ImageWithFallback
                                   src={item.imageUrl}
                                   alt={item.name}
-                                  className="w-full h-full object-contain"
+                                  className="w-full h-full object-contain max-w-[80%] max-h-[80%]"
                                 />
                               ) : (
                                 <Package className="w-12 h-12 text-muted-foreground" />

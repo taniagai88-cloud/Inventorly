@@ -166,19 +166,19 @@ export function AIAssistant({ jobAssignments, items, onNavigate }: AIAssistantPr
   };
 
   return (
-    <Card className="bg-card border-border elevation-sm p-4 sm:p-6">
-      <div className="flex items-center gap-2 mb-3 sm:mb-4">
+    <Card className="bg-card border-border elevation-sm p-3 sm:p-4 h-auto">
+      <div className="flex items-center gap-2 mb-2">
         <div className="w-8 h-8 bg-gradient-to-br from-primary to-chart-2 rounded-lg flex items-center justify-center flex-shrink-0">
           <Sparkles className="w-4 h-4 text-primary-foreground" />
         </div>
         <h3 className="text-base sm:text-lg font-medium text-foreground">AI Assistant</h3>
       </div>
 
-      <p className="text-muted-foreground mb-3 sm:mb-4 text-sm">
+      <p className="text-muted-foreground mb-2 text-sm">
         Ask me anything about your inventory and projects
       </p>
 
-      <div className="space-y-3 sm:space-y-4">
+      <div className="space-y-2">
         <div className="flex flex-col sm:flex-row gap-2">
           <Textarea
             value={prompt}
@@ -207,7 +207,7 @@ export function AIAssistant({ jobAssignments, items, onNavigate }: AIAssistantPr
               initial={{ opacity: 0, y: 10 }}
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0, y: -10 }}
-              className="bg-muted rounded-lg p-3 sm:p-4 space-y-3"
+              className="bg-muted rounded-lg p-3 sm:p-4 space-y-2 mt-2"
             >
               <div className="flex items-start gap-2">
                 <Sparkles className="w-4 h-4 text-primary mt-1 flex-shrink-0" />

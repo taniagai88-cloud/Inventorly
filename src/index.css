@@ -3478,6 +3478,26 @@ html {
 .react-resizable-hide > .react-resizable-handle {
   display: none;
 }
+
+/* Allow AI Assistant grid item to expand naturally with content */
+.react-grid-item[data-grid*='"i":"aiAssistant"'] {
+  height: auto !important;
+  min-height: fit-content;
+}
+
+.react-grid-item[data-grid*='"i":"aiAssistant"'] > div {
+  height: auto !important;
+}
+
+/* Alternative selector using class */
+.react-grid-item .ai-assistant-expandable {
+  height: auto !important;
+}
+
+.react-grid-item:has(.ai-assistant-expandable) {
+  height: auto !important;
+  min-height: fit-content;
+}
 .react-grid-item > .react-resizable-handle.react-resizable-handle-sw {
   bottom: 0;
   left: 0;

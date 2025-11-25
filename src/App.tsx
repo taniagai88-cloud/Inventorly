@@ -73,11 +73,25 @@ export default function App() {
       setPreviousState(validPreviousState);
     }
     
+    // Handle selectedItem state
     if (state === "itemDetail" && data?.item) {
       setSelectedItem(data.item);
-    } else if (state === "assignToJob" && data?.item) {
-      setSelectedItem(data.item);
-    } else if (state === "library" && data?.filter) {
+    } else if (state === "assignToJob") {
+      // Handle assignToJob navigation
+      if (data?.item) {
+        // Assigning inventory to a project - set the item
+        setSelectedItem(data.item);
+      } else {
+        // Creating a new project (not assigning inventory) - explicitly clear selectedItem
+        setSelectedItem(null);
+      }
+    } else if (state !== "itemDetail" && state !== "assignToJob") {
+      // Clear selectedItem when navigating to other states (unless they explicitly set it)
+      // This prevents stale selectedItem from affecting assignToJob when creating a project
+      setSelectedItem(null);
+    }
+    
+    if (state === "library" && data?.filter) {
       setLibraryFilter(data.filter);
       setSelectedProjectId(undefined);
     } else if (state === "library" && data?.selectedProjectId) {

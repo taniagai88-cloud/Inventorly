@@ -138,7 +138,7 @@ export function InventoryLibrary({ items, onNavigate, initialFilter = "all", job
                       onClick={() => onNavigate("itemDetail", { item })}
                     >
                       {/* Image */}
-                      <div className="w-full h-40 bg-white rounded-lg flex items-center justify-center mb-4 overflow-hidden">
+                      <div className="w-full aspect-square bg-white rounded-lg flex items-center justify-center mb-4 overflow-hidden">
                         {item.imageUrl ? (
                           <ImageWithFallback
                             src={item.imageUrl}
