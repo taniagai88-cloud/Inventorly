@@ -37,7 +37,7 @@ export function AppHeader({ user, currentState, onNavigate }: AppHeaderProps) {
               className="cursor-pointer hover:opacity-80 transition-opacity touch-manipulation flex-shrink-0"
               aria-label="Go to dashboard"
             >
-              <img src={logoImage} alt="Inventorly" className="h-7 sm:h-8 w-auto" />
+              <img src={logoImage} alt="Inventorly" className="h-6 sm:h-7 md:h-8 w-auto max-h-8" />
             </button>
             <div className="min-w-0 flex-1 hidden sm:block">
               <h4 className="text-foreground text-sm sm:text-base truncate">Welcome back, {user.fullName}</h4>

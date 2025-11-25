@@ -885,9 +885,19 @@ html, body {
   width: 100%;
 }
 
-img, video, iframe, svg {
+img, video, iframe {
   max-width: 100%;
+}
+
+/* Only apply height: auto if no explicit height is set */
+img:not([class*="h-"]):not([style*="height"]), 
+video:not([class*="h-"]):not([style*="height"]), 
+iframe:not([class*="h-"]):not([style*="height"]) {
   height: auto;
+}
+
+svg {
+  max-width: 100%;
 }
 
 /* Prevent table overflow */
