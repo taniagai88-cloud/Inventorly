@@ -454,7 +454,7 @@ export function AssignToJob({ item, onNavigate, onCreateJob, jobAssignments = []
             </Button>
           </div>
 
-          <h2 className="text-lg sm:text-xl font-semibold text-foreground mb-4 sm:mb-6 leading-snug">Assign to Job</h2>
+          <h2 className="text-lg sm:text-xl font-semibold text-foreground mb-4 sm:mb-6 leading-snug">Create New Project</h2>
 
           {/* Form */}
           <Card className="bg-card border-border elevation-sm p-4 sm:p-6">
