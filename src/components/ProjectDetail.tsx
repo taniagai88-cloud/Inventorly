@@ -1,6 +1,6 @@
 import React, { useState, useRef, useEffect, useCallback } from "react";
 import { motion } from "motion/react";
-import { ArrowLeft, MapPin, Calendar, Clock, Package, TrendingUp, DollarSign, AlertCircle, CheckCircle, FileText, Mail, Plus, Minus, Edit } from "lucide-react";
+import { ArrowLeft, MapPin, Calendar, Clock, Package, TrendingUp, DollarSign, AlertCircle, CheckCircle, FileText, Mail, Plus, Minus, Edit, Search, X } from "lucide-react";
 import { Card } from "./ui/card";
 import { Badge } from "./ui/badge";
 import { Button } from "./ui/button";
@@ -18,7 +18,7 @@ import { Popover, PopoverContent, PopoverTrigger } from "./ui/popover";
 import { Calendar as CalendarComponent } from "./ui/calendar";
 import { cn } from "./ui/utils";
 import type { AppState, JobAssignment, InventoryItem } from "../types";
-import { getProjectItemIds, isProjectStaged, isStagingUpcoming } from "../utils/projectUtils";
+import { getProjectItemIds, isProjectStaged, isStagingUpcoming, getAccurateItemQuantities } from "../utils/projectUtils";
 import { getRoomPricing, getSetting } from "../utils/settings";
 
 interface ProjectDetailProps {
@@ -26,6 +26,7 @@ interface ProjectDetailProps {
   items: InventoryItem[];
   onNavigate: (state: AppState, data?: any) => void;
   onUpdateJob?: (job: JobAssignment) => void;
+  jobAssignments?: JobAssignment[];
 }
 
 // Default rooms for staging projects - defined outside component to avoid re-creation
@@ -56,7 +57,7 @@ const formatCurrency = (amount: number): string => {
 // Note: calculateTotalContractAmount is now replaced by calculateProjectTotal() 
 // which matches the invoice calculation (includes fees and tax)
 
-export function ProjectDetail({ project, items, onNavigate, onUpdateJob }: ProjectDetailProps) {
+export function ProjectDetail({ project, items, onNavigate, onUpdateJob, jobAssignments = [] }: ProjectDetailProps) {
   // Real-time date state that updates every minute
   const [currentDate, setCurrentDate] = useState(new Date());
   
@@ -65,6 +66,12 @@ export function ProjectDetail({ project, items, onNavigate, onUpdateJob }: Proje
   const [editedProject, setEditedProject] = useState<JobAssignment>(project);
   const [editStagingDateOption, setEditStagingDateOption] = useState<"date" | "tbd">(project.stagingDate ? "date" : "tbd");
   const [isSaving, setIsSaving] = useState(false);
+  
+  // Multi-select items dialog state
+  const [addItemsDialogOpen, setAddItemsDialogOpen] = useState(false);
+  const [selectedItemIds, setSelectedItemIds] = useState<Set<string>>(new Set());
+  const [searchQuery, setSearchQuery] = useState("");
+  const [categoryFilter, setCategoryFilter] = useState("all");
   
   // Update current date every minute for real-time calculations
   useEffect(() => {
@@ -86,6 +93,82 @@ export function ProjectDetail({ project, items, onNavigate, onUpdateJob }: Proje
   const projectItems = items.filter(item => projectItemIds.includes(item.id));
   const isStaged = isProjectStaged(project);
   const isUpcoming = isStagingUpcoming(project.stagingDate);
+  
+  // Get available items (not already assigned to this project)
+  const availableItems = items.filter(item => {
+    // Get accurate quantities considering all active projects
+    const activeProjects = jobAssignments?.filter(job => job.status === "active") || [];
+    const accurateQuantities = getAccurateItemQuantities(item, activeProjects);
+    const availableQty = accurateQuantities.availableQuantity;
+    
+    // Filter out items already assigned to this project and items with no availability
+    return !projectItemIds.includes(item.id) && availableQty > 0;
+  });
+  
+  // Filter available items by search and category
+  const filteredAvailableItems = availableItems.filter(item => {
+    const matchesSearch = searchQuery === "" || 
+      item.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      item.category.toLowerCase().includes(searchQuery.toLowerCase());
+    const matchesCategory = categoryFilter === "all" || item.category === categoryFilter;
+    return matchesSearch && matchesCategory;
+  });
+  
+  // Get categories for filter
+  const categories = Array.from(new Set(availableItems.map(item => item.category)));
+  
+  // Handle item selection toggle
+  const handleItemToggle = (itemId: string) => {
+    setSelectedItemIds(prev => {
+      const newSet = new Set(prev);
+      if (newSet.has(itemId)) {
+        newSet.delete(itemId);
+      } else {
+        newSet.add(itemId);
+      }
+      return newSet;
+    });
+  };
+  
+  // Handle assign selected items
+  const handleAssignSelectedItems = () => {
+    if (selectedItemIds.size === 0) {
+      toast.error("Please select at least one item");
+      return;
+    }
+    
+    if (!onUpdateJob) {
+      toast.error("Cannot update project");
+      return;
+    }
+    
+    // Add selected items to project's itemIds
+    const existingItemIds = project.itemIds || [];
+    const newItemIds = Array.from(selectedItemIds);
+    const updatedItemIds = [...existingItemIds, ...newItemIds];
+    
+    const updatedProject: JobAssignment = {
+      ...project,
+      itemIds: updatedItemIds,
+    };
+    
+    onUpdateJob(updatedProject);
+    
+    toast.success(`${selectedItemIds.size} item${selectedItemIds.size > 1 ? 's' : ''} assigned to project`);
+    setSelectedItemIds(new Set());
+    setAddItemsDialogOpen(false);
+    setSearchQuery("");
+    setCategoryFilter("all");
+  };
+  
+  // Reset selection when dialog closes
+  useEffect(() => {
+    if (!addItemsDialogOpen) {
+      setSelectedItemIds(new Set());
+      setSearchQuery("");
+      setCategoryFilter("all");
+    }
+  }, [addItemsDialogOpen]);
   
   // Calculate inventory value - sum of purchase cost of all assigned items
   const calculateInventoryValue = (): number => {
@@ -1134,10 +1217,10 @@ Total: ${formatCurrency(total)}
               </Dialog>
               <Button
                 className="bg-primary text-primary-foreground hover:bg-primary/90 flex-1 sm:flex-initial min-h-[44px] touch-manipulation"
-                onClick={() => onNavigate("library", { selectedProjectId: project.id })}
+                onClick={() => setAddItemsDialogOpen(true)}
               >
-                <span className="hidden sm:inline">{isUpcoming ? "Add Inventory" : "Manage Inventory"}</span>
-                <span className="sm:hidden">{isUpcoming ? "Add" : "Manage"}</span>
+                <span className="hidden sm:inline">{isUpcoming ? "Add Inventory" : "Add Items"}</span>
+                <span className="sm:hidden">{isUpcoming ? "Add" : "Add"}</span>
               </Button>
             </div>
           </div>
@@ -1563,9 +1646,19 @@ Total: ${formatCurrency(total)}
 
         {/* Items List */}
         <Card className="bg-card border-border elevation-sm p-4 sm:p-6">
-          <h4 className="text-foreground mb-4 sm:mb-6 text-base sm:text-lg">
-            {isStaged ? "Staged Items" : "Assigned Items"} ({projectItems.length})
-          </h4>
+          <div className="flex items-center justify-between mb-4 sm:mb-6">
+            <h4 className="text-foreground text-base sm:text-lg">
+              {isStaged ? "Staged Items" : "Assigned Items"} ({projectItems.length})
+            </h4>
+            <Button
+              onClick={() => setAddItemsDialogOpen(true)}
+              className="gap-2 min-h-[44px] touch-manipulation"
+            >
+              <Plus className="w-4 h-4" />
+              <span className="hidden sm:inline">Add Items</span>
+              <span className="sm:hidden">Add</span>
+            </Button>
+          </div>
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4">
             {projectItems.map((item) => (
               <motion.div
@@ -1610,8 +1703,8 @@ Total: ${formatCurrency(total)}
                     Items will be staged on {project.stagingDate ? format(project.stagingDate, "MMMM d, yyyy") : "TBD"}
                   </p>
                   <Button
-                    className="bg-primary text-primary-foreground hover:bg-primary/90"
-                    onClick={() => onNavigate("library", { selectedProjectId: project.id })}
+                    className="bg-primary text-primary-foreground hover:bg-primary/90 min-h-[44px] touch-manipulation"
+                    onClick={() => setAddItemsDialogOpen(true)}
                   >
                     {isUpcoming ? "Add Inventory" : "Add Items to Project"}
                   </Button>
@@ -1620,8 +1713,8 @@ Total: ${formatCurrency(total)}
                 <>
                   <p className="text-muted-foreground mb-4">No items assigned yet</p>
                   <Button
-                    className="bg-primary text-primary-foreground hover:bg-primary/90"
-                    onClick={() => onNavigate("library", { selectedProjectId: project.id })}
+                    className="bg-primary text-primary-foreground hover:bg-primary/90 min-h-[44px] touch-manipulation"
+                    onClick={() => setAddItemsDialogOpen(true)}
                   >
                     {isUpcoming ? "Add Inventory" : "Add Items to Project"}
                   </Button>
@@ -1631,6 +1724,149 @@ Total: ${formatCurrency(total)}
           )}
         </Card>
       </motion.div>
+
+      {/* Add Items Multi-Select Dialog */}
+      <Dialog open={addItemsDialogOpen} onOpenChange={setAddItemsDialogOpen}>
+        <DialogContent className="max-w-4xl max-h-[90vh] overflow-hidden flex flex-col">
+          <DialogHeader className="flex-shrink-0">
+            <DialogTitle className="text-xl font-semibold text-foreground leading-snug">
+              Add Items to Project
+            </DialogTitle>
+            <DialogDescription className="text-sm font-normal text-muted-foreground leading-relaxed">
+              Select multiple items to assign to this project
+            </DialogDescription>
+          </DialogHeader>
+
+          {/* Search and Filter */}
+          <div className="flex flex-col sm:flex-row gap-3 sm:gap-4 mb-4 flex-shrink-0">
+            <div className="relative flex-1">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+              <Input
+                placeholder="Search items..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                className="pl-10 min-h-[44px] text-base"
+              />
+            </div>
+            <Select value={categoryFilter} onValueChange={setCategoryFilter}>
+              <SelectTrigger className="w-full sm:w-48 min-h-[44px]">
+                <SelectValue placeholder="All Categories" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All Categories</SelectItem>
+                {categories.map((category) => (
+                  <SelectItem key={category} value={category}>
+                    {category}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+
+          {/* Selected Items Count */}
+          {selectedItemIds.size > 0 && (
+            <div className="mb-4 flex items-center justify-between flex-shrink-0 p-3 bg-primary/10 rounded-lg">
+              <span className="text-sm font-medium text-foreground">
+                {selectedItemIds.size} item{selectedItemIds.size > 1 ? 's' : ''} selected
+              </span>
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => setSelectedItemIds(new Set())}
+                className="h-8 text-xs"
+              >
+                Clear Selection
+              </Button>
+            </div>
+          )}
+
+          {/* Items Grid */}
+          <div className="flex-1 overflow-y-auto scrollbar-hide pr-2">
+            {filteredAvailableItems.length === 0 ? (
+              <div className="text-center py-12">
+                <Package className="w-12 h-12 text-muted-foreground mx-auto mb-3" />
+                <p className="text-muted-foreground">
+                  {availableItems.length === 0 
+                    ? "No available items to assign" 
+                    : "No items match your search"}
+                </p>
+              </div>
+            ) : (
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4">
+                {filteredAvailableItems.map((item) => {
+                  const activeProjects = jobAssignments.filter(job => job.status === "active");
+                  const accurateQuantities = getAccurateItemQuantities(item, activeProjects);
+                  const isSelected = selectedItemIds.has(item.id);
+                  
+                  return (
+                    <motion.div
+                      key={item.id}
+                      initial={{ opacity: 0, scale: 0.95 }}
+                      animate={{ opacity: 1, scale: 1 }}
+                      className={cn(
+                        "relative border-2 rounded-lg p-3 sm:p-4 cursor-pointer transition-all touch-manipulation",
+                        isSelected 
+                          ? "border-primary bg-primary/10" 
+                          : "border-border hover:border-primary/50 bg-card"
+                      )}
+                      onClick={() => handleItemToggle(item.id)}
+                    >
+                      <div className="flex items-start gap-3">
+                        <Checkbox
+                          checked={isSelected}
+                          onCheckedChange={() => handleItemToggle(item.id)}
+                          className="mt-1"
+                        />
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-start gap-2 mb-2">
+                            <div className="w-12 h-12 bg-white rounded flex items-center justify-center flex-shrink-0 overflow-hidden">
+                              {item.imageUrl ? (
+                                <ImageWithFallback
+                                  src={item.imageUrl}
+                                  alt={item.name}
+                                  className="w-full h-full object-contain"
+                                />
+                              ) : (
+                                <Package className="w-6 h-6 text-muted-foreground" />
+                              )}
+                            </div>
+                            <div className="flex-1 min-w-0">
+                              <h4 className="text-sm font-medium text-foreground mb-1 truncate">{item.name}</h4>
+                              <Badge variant="outline" className="text-xs mb-1">{item.category}</Badge>
+                            </div>
+                          </div>
+                          <div className="space-y-1 text-xs text-muted-foreground">
+                            <p>Available: {accurateQuantities.availableQuantity} of {item.totalQuantity}</p>
+                            <p>Cost: ${item.purchaseCost.toLocaleString()}</p>
+                          </div>
+                        </div>
+                      </div>
+                    </motion.div>
+                  );
+                })}
+              </div>
+            )}
+          </div>
+
+          {/* Footer Actions */}
+          <div className="flex flex-col sm:flex-row gap-2 sm:gap-3 pt-4 border-t border-border flex-shrink-0">
+            <Button
+              variant="outline"
+              onClick={() => setAddItemsDialogOpen(false)}
+              className="flex-1 sm:flex-initial min-h-[44px] touch-manipulation"
+            >
+              Cancel
+            </Button>
+            <Button
+              onClick={handleAssignSelectedItems}
+              disabled={selectedItemIds.size === 0}
+              className="flex-1 sm:flex-initial min-h-[44px] touch-manipulation"
+            >
+              Assign {selectedItemIds.size > 0 && `(${selectedItemIds.size})`}
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
 
       {/* Edit Project Dialog */}
       <Dialog open={editDialogOpen} onOpenChange={setEditDialogOpen}>

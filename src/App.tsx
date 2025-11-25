@@ -270,6 +270,7 @@ export default function App() {
           items={inventoryItems}
           onNavigate={handleNavigate}
           onUpdateJob={handleUpdateJob}
+          jobAssignments={jobAssignments}
         />
       )}
 
