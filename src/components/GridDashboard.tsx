@@ -62,6 +62,7 @@ const DEFAULT_SECTIONS: DashboardSections = {
 };
 
 const DEFAULT_LAYOUTS = {
+  /* 1920px+ (3xl) - 12 columns */
   lg: [
     { i: "aiAssistant", x: 0, y: 0, w: 12, h: 4, minW: 6, minH: 3 },
     { i: "projects", x: 0, y: 4, w: 12, h: 6, minW: 6, minH: 4 },
@@ -70,14 +71,16 @@ const DEFAULT_LAYOUTS = {
     { i: "topItems", x: 0, y: 16, w: 12, h: 6, minW: 6, minH: 5 },
     { i: "insights", x: 0, y: 22, w: 12, h: 3, minW: 6, minH: 3 },
   ],
+  /* 1280px-1919px (xl/2xl) - 10 columns */
   md: [
-    { i: "aiAssistant", x: 0, y: 0, w: 10, h: 4, minW: 6, minH: 3 },
-    { i: "projects", x: 0, y: 4, w: 10, h: 6, minW: 6, minH: 4 },
-    { i: "kpis", x: 0, y: 10, w: 10, h: 4, minW: 6, minH: 3 },
-    { i: "quickActions", x: 0, y: 14, w: 10, h: 2, minW: 6, minH: 2 },
-    { i: "topItems", x: 0, y: 16, w: 10, h: 6, minW: 6, minH: 5 },
-    { i: "insights", x: 0, y: 22, w: 10, h: 3, minW: 6, minH: 3 },
+    { i: "aiAssistant", x: 0, y: 0, w: 10, h: 4, minW: 5, minH: 3 },
+    { i: "projects", x: 0, y: 4, w: 10, h: 6, minW: 5, minH: 4 },
+    { i: "kpis", x: 0, y: 10, w: 10, h: 4, minW: 5, minH: 3 },
+    { i: "quickActions", x: 0, y: 14, w: 10, h: 2, minW: 5, minH: 2 },
+    { i: "topItems", x: 0, y: 16, w: 10, h: 6, minW: 5, minH: 5 },
+    { i: "insights", x: 0, y: 22, w: 10, h: 3, minW: 5, minH: 3 },
   ],
+  /* 768px-1279px (tablet) - 6 columns */
   sm: [
     { i: "aiAssistant", x: 0, y: 0, w: 6, h: 4, minW: 6, minH: 3 },
     { i: "projects", x: 0, y: 4, w: 6, h: 7, minW: 6, minH: 5 },
@@ -86,6 +89,7 @@ const DEFAULT_LAYOUTS = {
     { i: "topItems", x: 0, y: 18, w: 6, h: 8, minW: 6, minH: 6 },
     { i: "insights", x: 0, y: 26, w: 6, h: 3, minW: 6, minH: 3 },
   ],
+  /* 414px-767px (medium mobile) - 4 columns */
   xs: [
     { i: "aiAssistant", x: 0, y: 0, w: 4, h: 4, minW: 4, minH: 3 },
     { i: "projects", x: 0, y: 4, w: 4, h: 7, minW: 4, minH: 5 },
@@ -94,11 +98,23 @@ const DEFAULT_LAYOUTS = {
     { i: "topItems", x: 0, y: 18, w: 4, h: 8, minW: 4, minH: 6 },
     { i: "insights", x: 0, y: 26, w: 4, h: 3, minW: 4, minH: 3 },
   ],
+  /* 320px-413px (small mobile) - 2 columns */
+  xxs: [
+    { i: "aiAssistant", x: 0, y: 0, w: 2, h: 4, minW: 2, minH: 3 },
+    { i: "projects", x: 0, y: 4, w: 2, h: 7, minW: 2, minH: 5 },
+    { i: "kpis", x: 0, y: 11, w: 2, h: 5, minW: 2, minH: 4 },
+    { i: "quickActions", x: 0, y: 16, w: 2, h: 2, minW: 2, minH: 2 },
+    { i: "topItems", x: 0, y: 18, w: 2, h: 8, minW: 2, minH: 6 },
+    { i: "insights", x: 0, y: 26, w: 2, h: 3, minW: 2, minH: 3 },
+  ],
 };
 
 export function GridDashboard({ onNavigate, jobAssignments }: DashboardProps) {
   // Real-time date state that updates every minute
   const [currentDate, setCurrentDate] = useState(new Date());
+  
+  // Track window width for responsive grid settings
+  const [windowWidth, setWindowWidth] = useState(typeof window !== 'undefined' ? window.innerWidth : 1200);
   
   // Update current date every minute for real-time calculations
   useEffect(() => {
@@ -107,6 +123,16 @@ export function GridDashboard({ onNavigate, jobAssignments }: DashboardProps) {
     }, 60000); // Update every minute
     
     return () => clearInterval(interval);
+  }, []);
+
+  // Update window width on resize
+  useEffect(() => {
+    const handleResize = () => {
+      setWindowWidth(window.innerWidth);
+    };
+    
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
   }, []);
   
   const [scrollPosition, setScrollPosition] = useState(0);
@@ -304,17 +330,18 @@ export function GridDashboard({ onNavigate, jobAssignments }: DashboardProps) {
     md: layouts.md.filter(l => visibleSections[l.i as keyof DashboardSections]),
     sm: layouts.sm.filter(l => visibleSections[l.i as keyof DashboardSections]),
     xs: layouts.xs?.filter(l => visibleSections[l.i as keyof DashboardSections]) || [],
+    xxs: layouts.xxs?.filter(l => visibleSections[l.i as keyof DashboardSections]) || [],
   };
 
   return (
-    <div className="max-w-7xl mx-auto" style={{ padding: 'var(--spacing-8) var(--spacing-4)' }}>
+    <div className="w-full max-w-[1920px] mx-auto px-3 sm:px-4 md:px-6 lg:px-8 xl:px-10 2xl:px-12 py-3 sm:py-4 md:py-6 lg:py-8 overflow-x-hidden">
       {/* Header */}
-      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4" style={{ marginBottom: 'var(--spacing-6)' }}>
+      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-4 sm:mb-6">
         <div>
-          <h1 className="text-foreground text-xl sm:text-2xl" style={{ marginBottom: 'var(--spacing-1)' }}>Dashboard</h1>
+          <h1 className="text-foreground text-xl sm:text-2xl mb-1">Dashboard</h1>
           <p className="text-muted-foreground text-sm hidden sm:block">Drag and resize sections to customize your layout</p>
         </div>
-        <div className="flex flex-wrap w-full sm:w-auto" style={{ gap: 'var(--spacing-2)' }}>
+        <div className="flex flex-wrap w-full sm:w-auto gap-2">
           <Button
             variant={isEditMode ? "default" : "outline"}
             onClick={() => {
@@ -330,7 +357,7 @@ export function GridDashboard({ onNavigate, jobAssignments }: DashboardProps) {
           </Button>
           <Sheet open={customizeSheetOpen} onOpenChange={setCustomizeSheetOpen}>
             <SheetTrigger asChild>
-              <Button variant="outline" style={{ gap: 'var(--spacing-2)' }} className="flex-1 sm:flex-initial min-h-[44px]">
+              <Button variant="outline" className="flex-1 sm:flex-initial min-h-[44px] gap-2">
                 <LayoutGrid className="w-4 h-4" />
                 <span className="hidden sm:inline">Sections</span>
                 <span className="sm:hidden">Sections</span>
@@ -464,35 +491,51 @@ export function GridDashboard({ onNavigate, jobAssignments }: DashboardProps) {
         <ResponsiveGridLayout
           className="layout"
           layouts={visibleLayouts}
-          breakpoints={{ lg: 1200, md: 996, sm: 768, xs: 480 }}
-          cols={{ lg: 12, md: 10, sm: 6, xs: 4 }}
-          rowHeight={60}
+          breakpoints={{ 
+            lg: 1920,   // 1920px+
+            md: 1280,   // 1280px-1919px
+            sm: 768,    // 768px-1279px
+            xs: 414,    // 414px-767px
+            xxs: 320    // 320px-413px
+          }}
+          cols={{ 
+            lg: 12,     // 1920px+
+            md: 10,     // 1280px-1919px
+            sm: 6,      // 768px-1279px
+            xs: 4,      // 414px-767px
+            xxs: 2      // 320px-413px
+          }}
+          rowHeight={windowWidth < 414 ? 45 : windowWidth < 768 ? 50 : 60}
           isDraggable={isEditMode}
           isResizable={isEditMode}
           onLayoutChange={handleLayoutChange}
           draggableHandle=".drag-handle"
           compactType="vertical"
           preventCollision={false}
+          margin={[
+            windowWidth < 414 ? 6 : windowWidth < 768 ? 8 : windowWidth < 1024 ? 12 : 16,
+            windowWidth < 414 ? 6 : windowWidth < 768 ? 8 : windowWidth < 1024 ? 12 : 16
+          ]}
         >
           {visibleSections.kpis && (
             <div key="kpis">
-              <Card className={`bg-card border-border elevation-sm h-full ${isEditMode ? 'cursor-move' : ''}`} style={{ padding: 'var(--spacing-6)' }}>
+              <Card className={`bg-card border-border elevation-sm h-full p-4 sm:p-6 ${isEditMode ? 'cursor-move' : ''}`}>
                 {isEditMode && (
-                  <div className="drag-handle flex items-center justify-center bg-muted cursor-move" style={{ marginBottom: 'var(--spacing-4)', padding: 'var(--spacing-2)', borderRadius: 'var(--radius-lg)' }}>
-                    <LayoutGrid className="w-4 h-4 text-muted-foreground" style={{ marginRight: 'var(--spacing-2)' }} />
+                  <div className="drag-handle flex items-center justify-center bg-muted cursor-move mb-4 p-2 rounded-lg">
+                    <LayoutGrid className="w-4 h-4 text-muted-foreground mr-2" />
                     <span className="text-muted-foreground">Drag to move</span>
                   </div>
                 )}
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 h-full gap-4 sm:gap-6">
+                <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-2 lg:grid-cols-4 h-full gap-3 sm:gap-4 md:gap-6">
                   {kpis.map((kpi) => (
                     <div
                       key={kpi.label}
                       className="bg-card border border-border elevation-sm cursor-pointer hover:bg-muted/50 transition-colors touch-manipulation p-4 sm:p-6 rounded-lg"
                       onClick={kpi.onClick}
                     >
-                      <div className="flex items-start justify-between" style={{ marginBottom: 'var(--spacing-4)' }}>
+                      <div className="flex items-start justify-between mb-4">
                         <kpi.icon className={`w-8 h-8 ${kpi.color}`} />
-                        <div className="flex items-center" style={{ gap: 'var(--spacing-1)' }}>
+                        <div className="flex items-center gap-1">
                           {kpi.change > 0 ? (
                             <ArrowUp className="w-4 h-4 text-chart-3" />
                           ) : (
@@ -503,7 +546,7 @@ export function GridDashboard({ onNavigate, jobAssignments }: DashboardProps) {
                           </span>
                         </div>
                       </div>
-                      <h3 className="text-foreground" style={{ marginBottom: 'var(--spacing-1)' }}>{kpi.value}</h3>
+                      <h3 className="text-foreground mb-1">{kpi.value}</h3>
                       <p className="text-muted-foreground">{kpi.label}</p>
                     </div>
                   ))}
@@ -514,10 +557,10 @@ export function GridDashboard({ onNavigate, jobAssignments }: DashboardProps) {
 
           {visibleSections.quickActions && (
             <div key="quickActions">
-              <Card className={`bg-card border-border elevation-sm h-full ${isEditMode ? 'cursor-move' : ''}`} style={{ padding: 'var(--spacing-6)' }}>
+              <Card className={`bg-card border-border elevation-sm h-full p-4 sm:p-6 ${isEditMode ? 'cursor-move' : ''}`}>
                 {isEditMode && (
-                  <div className="drag-handle flex items-center justify-center bg-muted cursor-move" style={{ marginBottom: 'var(--spacing-4)', padding: 'var(--spacing-2)', borderRadius: 'var(--radius-lg)' }}>
-                    <LayoutGrid className="w-4 h-4 text-muted-foreground" style={{ marginRight: 'var(--spacing-2)' }} />
+                  <div className="drag-handle flex items-center justify-center bg-muted cursor-move mb-4 p-2 rounded-lg">
+                    <LayoutGrid className="w-4 h-4 text-muted-foreground mr-2" />
                     <span className="text-muted-foreground">Drag to move</span>
                   </div>
                 )}
@@ -526,11 +569,11 @@ export function GridDashboard({ onNavigate, jobAssignments }: DashboardProps) {
                     onClick={() => onNavigate("addItem")} 
                     className="flex-1 w-full bg-primary text-white hover:!bg-secondary transition-colors min-h-[44px] touch-manipulation"
                   >
-                    <Plus className="w-4 h-4" style={{ marginRight: 'var(--spacing-2)' }} />
+                    <Plus className="w-4 h-4 mr-2" />
                     Add Item
                   </Button>
                   <Button onClick={() => onNavigate("assignToJob")} variant="outline" className="flex-1 w-full min-h-[44px] touch-manipulation">
-                    <FolderPlus className="w-4 h-4" style={{ marginRight: 'var(--spacing-2)' }} />
+                    <FolderPlus className="w-4 h-4 mr-2" />
                     Create Project
                   </Button>
                 </div>
@@ -542,8 +585,8 @@ export function GridDashboard({ onNavigate, jobAssignments }: DashboardProps) {
             <div key="aiAssistant">
               <div className={`h-full ${isEditMode ? 'cursor-move' : ''}`}>
                 {isEditMode && (
-                  <div className="drag-handle flex items-center justify-center bg-muted cursor-move border border-border" style={{ marginBottom: 'var(--spacing-4)', padding: 'var(--spacing-2)', borderRadius: 'var(--radius-lg)' }}>
-                    <LayoutGrid className="w-4 h-4 text-muted-foreground" style={{ marginRight: 'var(--spacing-2)' }} />
+                  <div className="drag-handle flex items-center justify-center bg-muted cursor-move border border-border mb-4 p-2 rounded-lg">
+                    <LayoutGrid className="w-4 h-4 text-muted-foreground mr-2" />
                     <span className="text-muted-foreground">Drag to move</span>
                   </div>
                 )}
@@ -558,16 +601,16 @@ export function GridDashboard({ onNavigate, jobAssignments }: DashboardProps) {
 
           {visibleSections.projects && (
             <div key="projects">
-              <Card className={`bg-card border-border elevation-sm h-full overflow-auto ${isEditMode ? 'cursor-move' : ''}`} style={{ padding: 'var(--spacing-6)' }}>
+              <Card className={`bg-card border-border elevation-sm h-full overflow-auto p-4 sm:p-6 ${isEditMode ? 'cursor-move' : ''}`}>
                 {isEditMode && (
-                  <div className="drag-handle flex items-center justify-center bg-muted cursor-move" style={{ marginBottom: 'var(--spacing-4)', padding: 'var(--spacing-2)', borderRadius: 'var(--radius-lg)' }}>
-                    <LayoutGrid className="w-4 h-4 text-muted-foreground" style={{ marginRight: 'var(--spacing-2)' }} />
+                  <div className="drag-handle flex items-center justify-center bg-muted cursor-move mb-4 p-2 rounded-lg">
+                    <LayoutGrid className="w-4 h-4 text-muted-foreground mr-2" />
                     <span className="text-muted-foreground">Drag to move</span>
                   </div>
                 )}
-                <div className="flex items-start justify-between" style={{ marginBottom: 'var(--spacing-4)' }}>
+                <div className="flex items-start justify-between mb-4">
                   <div>
-                    <div className="flex items-center" style={{ gap: 'var(--spacing-2)', marginBottom: 'var(--spacing-1)' }}>
+                    <div className="flex items-center gap-2 mb-1">
                       <h2 className="text-foreground">Projects</h2>
                     </div>
                     <p className="text-muted-foreground">Track staging timelines</p>
@@ -584,7 +627,7 @@ export function GridDashboard({ onNavigate, jobAssignments }: DashboardProps) {
                     <div className="ml-auto">
                     <DropdownMenu>
                       <DropdownMenuTrigger asChild>
-                        <Button variant="outline" size="sm" style={{ gap: 'var(--spacing-2)' }}>
+                        <Button variant="outline" size="sm" className="gap-2">
                             <ArrowUpDown className="w-4 h-4" />
                             {sortOrder === "earliest" ? "Earliest" : "Latest"}
                         </Button>
@@ -602,7 +645,7 @@ export function GridDashboard({ onNavigate, jobAssignments }: DashboardProps) {
                   </div>
                 </div>
 
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3" style={{ gap: 'var(--spacing-4)' }}>
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                   {activeProjects.map((job) => {
                     const projectItems = getProjectItemIds(job);
                     const daysLeft = getDaysLeft(job.stagingDate);
@@ -680,30 +723,29 @@ export function GridDashboard({ onNavigate, jobAssignments }: DashboardProps) {
 
           {visibleSections.topItems && (
             <div key="topItems">
-              <Card className={`bg-card border-border elevation-sm h-full overflow-hidden flex flex-col ${isEditMode ? 'cursor-move' : ''}`} style={{ padding: 'var(--spacing-6)' }}>
+              <Card className={`bg-card border-border elevation-sm h-full overflow-hidden flex flex-col p-4 sm:p-6 ${isEditMode ? 'cursor-move' : ''}`}>
                 {isEditMode && (
-                  <div className="drag-handle flex items-center justify-center bg-muted cursor-move" style={{ marginBottom: 'var(--spacing-4)', padding: 'var(--spacing-2)', borderRadius: 'var(--radius-lg)', flexShrink: 0 }}>
-                    <LayoutGrid className="w-4 h-4 text-muted-foreground" style={{ marginRight: 'var(--spacing-2)' }} />
+                  <div className="drag-handle flex items-center justify-center bg-muted cursor-move mb-4 p-2 rounded-lg flex-shrink-0">
+                    <LayoutGrid className="w-4 h-4 text-muted-foreground mr-2" />
                     <span className="text-muted-foreground">Drag to move</span>
                   </div>
                 )}
-                <div style={{ marginBottom: 'var(--spacing-4)', flexShrink: 0 }}>
-                  <h2 className="text-foreground" style={{ marginBottom: 'var(--spacing-1)' }}>Top 5 Most-Used</h2>
+                <div className="mb-4 flex-shrink-0">
+                  <h2 className="text-foreground mb-1">Top 5 Most-Used</h2>
                   <p className="text-muted-foreground">Your most frequently used items</p>
                 </div>
 
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-3 sm:gap-4" style={{ flex: 1, minHeight: 0, alignContent: 'start' }}>
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-3 sm:gap-4 flex-1 min-h-0 content-start">
                   {topItems.map((item) => {
                     const status = getStockStatus(item);
                     return (
                       <div
                         key={item.id}
-                        className="border border-border cursor-pointer hover:bg-muted transition-colors flex flex-col touch-manipulation"
-                        style={{ padding: 'var(--spacing-3)', borderRadius: 'var(--radius-lg)' }}
+                        className="border border-border cursor-pointer hover:bg-muted transition-colors flex flex-col touch-manipulation p-3 rounded-lg"
                         onClick={() => handleTopItemClick(item)}
                       >
-                        <div className="relative" style={{ marginBottom: 'var(--spacing-2)', flexShrink: 0 }}>
-                          <div className="w-full bg-white flex items-center justify-center overflow-hidden" style={{ height: '7rem', borderRadius: 'var(--radius-md)' }}>
+                        <div className="relative mb-2 flex-shrink-0">
+                          <div className="w-full bg-white flex items-center justify-center overflow-hidden h-28 rounded-md">
                             {item.imageUrl ? (
                               <ImageWithFallback
                                 src={item.imageUrl}
@@ -716,10 +758,10 @@ export function GridDashboard({ onNavigate, jobAssignments }: DashboardProps) {
                           </div>
                           
                         </div>
-                        <h4 className="text-foreground" style={{ marginBottom: 'var(--spacing-2)', overflow: 'hidden', textOverflow: 'ellipsis', display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', minHeight: '2.5rem' }}>{item.name}</h4>
-                        <div className="flex items-center justify-between" style={{ gap: 'var(--spacing-2)', marginTop: 'auto' }}>
+                        <h4 className="text-foreground mb-2 overflow-hidden text-ellipsis line-clamp-2 min-h-[2.5rem]">{item.name}</h4>
+                        <div className="flex items-center justify-between gap-2 mt-auto">
                           <Badge variant={status.variant}>{status.label}</Badge>
-                          <p className="text-muted-foreground" style={{ whiteSpace: 'nowrap' }}>
+                          <p className="text-muted-foreground whitespace-nowrap">
                             {item.availableQuantity}/{item.totalQuantity}
                           </p>
                         </div>
@@ -733,19 +775,19 @@ export function GridDashboard({ onNavigate, jobAssignments }: DashboardProps) {
 
           {visibleSections.insights && (
             <div key="insights">
-              <Card className={`bg-card border-border elevation-sm h-full ${isEditMode ? 'cursor-move' : ''}`} style={{ padding: 'var(--spacing-6)' }}>
+              <Card className={`bg-card border-border elevation-sm h-full p-4 sm:p-6 ${isEditMode ? 'cursor-move' : ''}`}>
                 {isEditMode && (
-                  <div className="drag-handle flex items-center justify-center bg-muted cursor-move" style={{ marginBottom: 'var(--spacing-4)', padding: 'var(--spacing-2)', borderRadius: 'var(--radius-lg)' }}>
-                    <LayoutGrid className="w-4 h-4 text-muted-foreground" style={{ marginRight: 'var(--spacing-2)' }} />
+                  <div className="drag-handle flex items-center justify-center bg-muted cursor-move mb-4 p-2 rounded-lg">
+                    <LayoutGrid className="w-4 h-4 text-muted-foreground mr-2" />
                     <span className="text-muted-foreground">Drag to move</span>
                   </div>
                 )}
-                <div className="flex items-center" style={{ gap: 'var(--spacing-2)', marginBottom: 'var(--spacing-4)' }}>
+                <div className="flex items-center gap-2 mb-4">
                   <TrendingUp className="w-5 h-5 text-primary" />
                   <h3 className="text-foreground">Insights</h3>
                 </div>
-                <h4 className="text-foreground" style={{ marginBottom: 'var(--spacing-3)' }}>Usage Trends</h4>
-                <p className="text-muted-foreground" style={{ marginBottom: 'var(--spacing-4)' }}>
+                <h4 className="text-foreground mb-3">Usage Trends</h4>
+                <p className="text-muted-foreground mb-4">
                   Your inventory utilization has increased by 8% this month. Professional Display Screens
                   and Modern Lounge Chairs are your most-used items.
                 </p>

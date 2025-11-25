@@ -156,7 +156,7 @@ export default function App() {
     appState === "settings";
 
   return (
-    <div className="min-h-screen bg-background">
+    <div className="min-h-screen bg-background overflow-x-hidden w-full max-w-full">
       {needsHeader && (
         <AppHeader
           user={userData}

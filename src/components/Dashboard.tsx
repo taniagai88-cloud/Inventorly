@@ -342,7 +342,7 @@ export function Dashboard({ onNavigate, jobAssignments }: DashboardProps) {
   const hasAnyVisibleSections = Object.values(visibleSections).some(v => v);
 
   return (
-    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+    <div className="w-full max-w-[1920px] mx-auto px-3 sm:px-4 md:px-6 lg:px-8 xl:px-10 2xl:px-12 py-3 sm:py-4 md:py-6 lg:py-8 overflow-x-hidden">
       {/* Customize Button */}
       <div className="flex justify-end mb-6">
         <Sheet open={customizeSheetOpen} onOpenChange={setCustomizeSheetOpen}>

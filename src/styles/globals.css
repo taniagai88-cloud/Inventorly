@@ -327,6 +327,61 @@
 
 html {
   font-size: var(--font-size);
+  overflow-x: hidden; /* Prevent horizontal scrolling */
+  max-width: 100vw; /* Ensure no overflow */
+}
+
+body {
+  overflow-x: hidden; /* Prevent horizontal scrolling */
+  max-width: 100vw; /* Ensure no overflow */
+  width: 100%;
+}
+
+/* Responsive Breakpoints System */
+/* 320px, 375px, 414px, 768px, 1024px, 1280px, 1440px, 1920px */
+
+:root {
+  /* Breakpoint values */
+  --breakpoint-xs: 320px;
+  --breakpoint-sm: 375px;
+  --breakpoint-md: 414px;
+  --breakpoint-tablet: 768px;
+  --breakpoint-lg: 1024px;
+  --breakpoint-xl: 1280px;
+  --breakpoint-2xl: 1440px;
+  --breakpoint-3xl: 1920px;
+  
+  /* Responsive typography scale */
+  --text-xs-mobile: 0.75rem; /* 12px */
+  --text-sm-mobile: 0.875rem; /* 14px */
+  --text-base-mobile: 1rem; /* 16px */
+  --text-lg-mobile: 1.125rem; /* 18px */
+  --text-xl-mobile: 1.25rem; /* 20px */
+  --text-2xl-mobile: 1.5rem; /* 24px */
+  
+  /* Readable line lengths (45-75 characters) */
+  --line-length-narrow: 20rem; /* ~320px - 45 chars */
+  --line-length-base: 28rem; /* ~448px - 65 chars */
+  --line-length-wide: 35rem; /* ~560px - 75 chars */
+  
+  /* Responsive spacing scale */
+  --spacing-xs: 0.5rem; /* 8px - mobile */
+  --spacing-sm: 0.75rem; /* 12px - mobile */
+  --spacing-md: 1rem; /* 16px - mobile */
+  --spacing-lg: 1.5rem; /* 24px - tablet */
+  --spacing-xl: 2rem; /* 32px - desktop */
+  --spacing-2xl: 3rem; /* 48px - large desktop */
+  --spacing-3xl: 4rem; /* 64px - extra large */
+  
+  /* Container max-widths for readable content */
+  --container-xs: 100%;
+  --container-sm: 100%;
+  --container-md: 100%;
+  --container-tablet: 100%;
+  --container-lg: 1024px;
+  --container-xl: 1280px;
+  --container-2xl: 1440px;
+  --container-3xl: 1920px;
 }
 
 /* Utility classes */
@@ -608,8 +663,121 @@ table.invoice-table th:nth-child(4) {
   align-items: flex-end;
 }
 
+/* Custom Media Queries for Exact Breakpoints */
+@custom-media --xs (width >= 320px);
+@custom-media --sm (width >= 375px);
+@custom-media --md (width >= 414px);
+@custom-media --tablet (width >= 768px);
+@custom-media --lg (width >= 1024px);
+@custom-media --xl (width >= 1280px);
+@custom-media --2xl (width >= 1440px);
+@custom-media --3xl (width >= 1920px);
+
+/* Comprehensive Responsive System */
+
+/* Extra Small Devices (320px and up) */
+@media (min-width: 320px) {
+  html {
+    font-size: 16px;
+  }
+  
+  /* Ensure readable line lengths */
+  p, li, .readable-text {
+    max-width: var(--line-length-narrow);
+  }
+  
+  /* Container padding */
+  .container-responsive {
+    padding-left: 1rem;
+    padding-right: 1rem;
+  }
+}
+
+/* Small Mobile (375px and up) */
+@media (min-width: 375px) {
+  html {
+    font-size: 16px;
+  }
+  
+  p, li, .readable-text {
+    max-width: var(--line-length-base);
+  }
+  
+  .container-responsive {
+    padding-left: 1.25rem;
+    padding-right: 1.25rem;
+  }
+}
+
+/* Medium Mobile (414px and up) */
+@media (min-width: 414px) {
+  html {
+    font-size: 16px;
+  }
+  
+  .container-responsive {
+    padding-left: 1.5rem;
+    padding-right: 1.5rem;
+  }
+}
+
+/* Tablet (768px and up) */
+@media (min-width: 768px) {
+  html {
+    font-size: 16px;
+  }
+  
+  p, li, .readable-text {
+    max-width: var(--line-length-wide);
+  }
+  
+  .container-responsive {
+    padding-left: 2rem;
+    padding-right: 2rem;
+    max-width: var(--container-lg);
+    margin-left: auto;
+    margin-right: auto;
+  }
+}
+
+/* Large Desktop (1024px and up) */
+@media (min-width: 1024px) {
+  .container-responsive {
+    max-width: var(--container-xl);
+    padding-left: 2.5rem;
+    padding-right: 2.5rem;
+  }
+}
+
+/* Extra Large Desktop (1280px and up) */
+@media (min-width: 1280px) {
+  .container-responsive {
+    max-width: var(--container-2xl);
+    padding-left: 3rem;
+    padding-right: 3rem;
+  }
+}
+
+/* 2XL Desktop (1440px and up) */
+@media (min-width: 1440px) {
+  .container-responsive {
+    max-width: var(--container-3xl);
+    padding-left: 3.5rem;
+    padding-right: 3.5rem;
+  }
+}
+
+/* 3XL Desktop (1920px and up) */
+@media (min-width: 1920px) {
+  .container-responsive {
+    max-width: var(--container-3xl);
+    padding-left: 4rem;
+    padding-right: 4rem;
+  }
+}
+
 /* Mobile Optimizations */
-@media (max-width: 768px) {
+@media (max-width: 767px) {
   .invoice-summary-header,
   .invoice-summary-row {
     grid-template-columns: 1fr;
@@ -662,26 +830,192 @@ table.invoice-table th:nth-child(4) {
   -webkit-tap-highlight-color: rgba(0, 0, 0, 0.1);
 }
 
-/* Mobile-specific spacing adjustments */
-@media (max-width: 640px) {
-  /* Reduce padding on mobile */
-  .max-w-7xl {
-    padding-left: 1rem;
-    padding-right: 1rem;
-  }
+/* Responsive Typography Hierarchy */
+/* Mobile-first approach with proper scaling */
 
-  /* Better button spacing */
-  .flex.gap-3 > * {
-    margin-right: 0.5rem;
-  }
+/* Base typography - Mobile (320px+) */
+h1 {
+  font-size: clamp(1.5rem, 4vw, 2rem); /* 24px - 32px */
+  line-height: 1.2;
+  max-width: var(--line-length-base);
+}
 
+h2 {
+  font-size: clamp(1.25rem, 3.5vw, 1.75rem); /* 20px - 28px */
+  line-height: 1.25;
+  max-width: var(--line-length-base);
+}
+
+h3 {
+  font-size: clamp(1.125rem, 3vw, 1.5rem); /* 18px - 24px */
+  line-height: 1.3;
+  max-width: var(--line-length-base);
+}
+
+h4 {
+  font-size: clamp(1rem, 2.5vw, 1.25rem); /* 16px - 20px */
+  line-height: 1.4;
+}
+
+p {
+  font-size: clamp(0.875rem, 2vw, 1rem); /* 14px - 16px */
+  line-height: 1.6;
+  max-width: var(--line-length-base);
+}
+
+/* Tablet and up - wider line lengths */
+@media (min-width: 768px) {
+  h1, h2, h3 {
+    max-width: var(--line-length-wide);
+  }
+  
+  p {
+    max-width: var(--line-length-wide);
+  }
+}
+
+/* Prevent horizontal overflow globally */
+* {
+  box-sizing: border-box;
+}
+
+html, body {
+  overflow-x: hidden;
+  max-width: 100vw;
+  width: 100%;
+}
+
+img, video, iframe, svg {
+  max-width: 100%;
+  height: auto;
+}
+
+/* Prevent table overflow */
+table {
+  width: 100%;
+  table-layout: auto;
+}
+
+/* Responsive text wrapping */
+p, span, div, h1, h2, h3, h4, h5, h6 {
+  word-wrap: break-word;
+  overflow-wrap: break-word;
+  hyphens: auto;
+}
+
+/* Ensure containers don't overflow */
+.container, .max-w-7xl, .max-w-6xl, .max-w-5xl, .max-w-4xl, .max-w-3xl, .max-w-2xl, .max-w-xl, .max-w-lg, .max-w-md, .max-w-sm {
+  max-width: 100%;
+  width: 100%;
+  padding-left: 1rem;
+  padding-right: 1rem;
+}
+
+@media (min-width: 375px) {
+  .container, .max-w-7xl, .max-w-6xl, .max-w-5xl, .max-w-4xl, .max-w-3xl, .max-w-2xl, .max-w-xl, .max-w-lg, .max-w-md, .max-w-sm {
+    padding-left: 1.25rem;
+    padding-right: 1.25rem;
+  }
+}
+
+@media (min-width: 768px) {
+  .max-w-sm { max-width: 24rem; }
+  .max-w-md { max-width: 28rem; }
+  .max-w-lg { max-width: 32rem; }
+  .max-w-xl { max-width: 36rem; }
+  .max-w-2xl { max-width: 42rem; }
+  .max-w-3xl { max-width: 48rem; }
+  .max-w-4xl { max-width: 56rem; }
+  .max-w-5xl { max-width: 64rem; }
+  .max-w-6xl { max-width: 72rem; }
+  .max-w-7xl { max-width: 80rem; }
+}
+
+@media (min-width: 1920px) {
+  .max-w-7xl { max-width: 1920px; }
+}
+
+/* Responsive container utility */
+.container-responsive {
+  width: 100%;
+  margin-left: auto;
+  margin-right: auto;
+  padding-left: 1rem;
+  padding-right: 1rem;
+}
+
+/* Responsive spacing utilities */
+@media (max-width: 767px) {
+  /* Mobile-specific spacing */
+  .space-y-responsive > * + * {
+    margin-top: var(--spacing-md);
+  }
+  
+  .gap-responsive {
+    gap: var(--spacing-md);
+  }
+  
   /* Card padding adjustments */
-  .p-6 {
-    padding: 1rem;
+  .p-responsive {
+    padding: var(--spacing-md);
   }
+  
+  .px-responsive {
+    padding-left: var(--spacing-md);
+    padding-right: var(--spacing-md);
+  }
+  
+  .py-responsive {
+    padding-top: var(--spacing-md);
+    padding-bottom: var(--spacing-md);
+  }
+}
 
-  .p-8 {
-    padding: 1.25rem;
+@media (min-width: 768px) {
+  .space-y-responsive > * + * {
+    margin-top: var(--spacing-lg);
+  }
+  
+  .gap-responsive {
+    gap: var(--spacing-lg);
+  }
+  
+  .p-responsive {
+    padding: var(--spacing-lg);
+  }
+  
+  .px-responsive {
+    padding-left: var(--spacing-lg);
+    padding-right: var(--spacing-lg);
+  }
+  
+  .py-responsive {
+    padding-top: var(--spacing-lg);
+    padding-bottom: var(--spacing-lg);
+  }
+}
+
+@media (min-width: 1024px) {
+  .space-y-responsive > * + * {
+    margin-top: var(--spacing-xl);
+  }
+  
+  .gap-responsive {
+    gap: var(--spacing-xl);
+  }
+  
+  .p-responsive {
+    padding: var(--spacing-xl);
+  }
+  
+  .px-responsive {
+    padding-left: var(--spacing-xl);
+    padding-right: var(--spacing-xl);
+  }
+  
+  .py-responsive {
+    padding-top: var(--spacing-xl);
+    padding-bottom: var(--spacing-xl);
   }
 }
 
