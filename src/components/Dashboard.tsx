@@ -739,7 +739,7 @@ export function Dashboard({ onNavigate, jobAssignments }: DashboardProps) {
                                   return (
                                     <Badge variant={status === "staged" ? "default" : "secondary"}>
                                       {status === "staged" ? "Staged" : status === "upcoming" ? "Upcoming" : "Pending"}
-                                    </Badge>
+                                </Badge>
                                   );
                                 })()}
                               </div>
@@ -857,7 +857,7 @@ export function Dashboard({ onNavigate, jobAssignments }: DashboardProps) {
                                         return (
                                           <Badge variant={status === "staged" ? "default" : "secondary"} className="text-xs">
                                             {status === "staged" ? "Staged" : status === "upcoming" ? "Upcoming" : "Pending"}
-                                          </Badge>
+                                      </Badge>
                                         );
                                       })()}
                                     </div>

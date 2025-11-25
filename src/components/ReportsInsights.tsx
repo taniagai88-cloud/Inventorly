@@ -162,9 +162,9 @@ export function ReportsInsights({ items, onNavigate, selectedItem, jobAssignment
               </p>
             )}
           </div>
-          <div className="flex gap-3">
+          <div className="flex flex-col sm:flex-row gap-2 sm:gap-3 w-full sm:w-auto">
             <Select value={dateRange} onValueChange={setDateRange}>
-              <SelectTrigger className="w-40">
+              <SelectTrigger className="w-full sm:w-40 min-h-[44px]">
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
@@ -174,7 +174,7 @@ export function ReportsInsights({ items, onNavigate, selectedItem, jobAssignment
                 <SelectItem value="custom">Custom range</SelectItem>
               </SelectContent>
             </Select>
-            <Button variant="outline" onClick={handleExport}>
+            <Button variant="outline" onClick={handleExport} className="w-full sm:w-auto min-h-[44px] touch-manipulation">
               <Download className="w-4 h-4 mr-2" />
               Export
             </Button>
@@ -188,14 +188,14 @@ export function ReportsInsights({ items, onNavigate, selectedItem, jobAssignment
             animate={{ opacity: 1, y: 0 }}
             className="mb-6"
           >
-            <Card className="bg-primary/10 border-primary p-6">
-              <div className="flex items-start justify-between gap-4">
-                <div className="flex-1">
-                  <div className="flex items-center gap-3 mb-3">
-                    <h3 className="text-lg font-medium text-foreground leading-snug">{selectedItem.name}</h3>
-                    <Badge variant="outline">{selectedItem.category}</Badge>
+            <Card className="bg-primary/10 border-primary p-4 sm:p-6">
+              <div className="flex items-start justify-between gap-3 sm:gap-4">
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-center gap-2 sm:gap-3 mb-3 flex-wrap">
+                    <h3 className="text-base sm:text-lg font-medium text-foreground leading-snug truncate">{selectedItem.name}</h3>
+                    <Badge variant="outline" className="text-xs">{selectedItem.category}</Badge>
                   </div>
-                  <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
+                  <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 sm:gap-4">
                     <div>
                       <p className="text-xs font-medium text-muted-foreground mb-1 leading-normal">Total Uses</p>
                       <p className="text-sm font-normal text-foreground leading-relaxed">{selectedItem.usageCount}</p>
@@ -220,7 +220,7 @@ export function ReportsInsights({ items, onNavigate, selectedItem, jobAssignment
                   variant="ghost"
                   size="icon"
                   onClick={() => onNavigate("reports")}
-                  className="flex-shrink-0"
+                  className="flex-shrink-0 min-h-[44px] min-w-[44px] touch-manipulation"
                 >
                   <X className="w-4 h-4" />
                 </Button>
@@ -230,7 +230,7 @@ export function ReportsInsights({ items, onNavigate, selectedItem, jobAssignment
         )}
 
         {/* KPI Cards */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6 mb-6 sm:mb-8">
           {kpis.map((kpi, index) => (
             <motion.div
               key={kpi.label}
@@ -238,7 +238,7 @@ export function ReportsInsights({ items, onNavigate, selectedItem, jobAssignment
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: index * 0.1 }}
             >
-              <Card className="bg-card border-border elevation-sm p-6">
+              <Card className="bg-card border-border elevation-sm p-4 sm:p-6">
                 <div className="flex items-start justify-between mb-4">
                   <kpi.icon className={`w-8 h-8 ${kpi.color}`} />
                   <div className="flex items-center gap-1">
@@ -260,10 +260,10 @@ export function ReportsInsights({ items, onNavigate, selectedItem, jobAssignment
         </div>
 
         {/* Charts */}
-        <div className="space-y-6 mb-8">
+        <div className="space-y-4 sm:space-y-6 mb-6 sm:mb-8">
           {/* Usage Over Time */}
-          <Card className="bg-card border-border elevation-sm p-6">
-            <h3 className="text-lg font-medium text-foreground mb-6 leading-snug">Inventory Usage Over Time</h3>
+          <Card className="bg-card border-border elevation-sm p-4 sm:p-6">
+            <h3 className="text-base sm:text-lg font-medium text-foreground mb-4 sm:mb-6 leading-snug">Inventory Usage Over Time</h3>
             <ResponsiveContainer width="100%" height={300}>
               <LineChart data={usageData}>
                 <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" />
@@ -287,10 +287,10 @@ export function ReportsInsights({ items, onNavigate, selectedItem, jobAssignment
             </ResponsiveContainer>
           </Card>
 
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6">
             {/* Items by Category */}
-            <Card className="bg-card border-border elevation-sm p-6">
-              <h3 className="text-lg font-medium text-foreground mb-6 leading-snug">Items by Category</h3>
+            <Card className="bg-card border-border elevation-sm p-4 sm:p-6">
+              <h3 className="text-base sm:text-lg font-medium text-foreground mb-4 sm:mb-6 leading-snug">Items by Category</h3>
               <ResponsiveContainer width="100%" height={300}>
                 <BarChart data={categoryData}>
                   <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" />
@@ -309,8 +309,8 @@ export function ReportsInsights({ items, onNavigate, selectedItem, jobAssignment
             </Card>
 
             {/* Revenue Generated */}
-            <Card className="bg-card border-border elevation-sm p-6">
-              <h3 className="text-lg font-medium text-foreground mb-6 leading-snug">Revenue Generated</h3>
+            <Card className="bg-card border-border elevation-sm p-4 sm:p-6">
+              <h3 className="text-base sm:text-lg font-medium text-foreground mb-4 sm:mb-6 leading-snug">Revenue Generated</h3>
               <ResponsiveContainer width="100%" height={300}>
                 <AreaChart data={revenueData}>
                   <defs>
@@ -365,13 +365,13 @@ export function ReportsInsights({ items, onNavigate, selectedItem, jobAssignment
                     }`}
                     onClick={() => onNavigate("itemDetail", { item })}
                   >
-                    <td className="p-3 text-sm font-normal text-foreground leading-relaxed">{item.name}</td>
-                    <td className="p-3">
-                      <Badge variant="outline">{item.category}</Badge>
+                    <td className="px-3 sm:p-3 py-2 sm:py-3 text-sm font-normal text-foreground leading-relaxed">{item.name}</td>
+                    <td className="px-3 sm:p-3 py-2 sm:py-3">
+                      <Badge variant="outline" className="text-xs">{item.category}</Badge>
                     </td>
-                    <td className="p-3 text-sm font-normal text-foreground leading-relaxed">{item.usageCount}</td>
-                    <td className="p-3 text-sm font-normal text-foreground leading-relaxed">${item.revenue.toLocaleString()}</td>
-                    <td className="p-3 text-sm font-normal text-foreground leading-relaxed">{item.utilization}%</td>
+                    <td className="px-3 sm:p-3 py-2 sm:py-3 text-sm font-normal text-foreground leading-relaxed">{item.usageCount}</td>
+                    <td className="px-3 sm:p-3 py-2 sm:py-3 text-sm font-normal text-foreground leading-relaxed">${item.revenue.toLocaleString()}</td>
+                    <td className="px-3 sm:p-3 py-2 sm:py-3 text-sm font-normal text-foreground leading-relaxed">{item.utilization}%</td>
                   </tr>
                 ))}
               </tbody>
@@ -380,19 +380,19 @@ export function ReportsInsights({ items, onNavigate, selectedItem, jobAssignment
         </Card>
 
         {/* Low Stock Alerts & Insights */}
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6">
           {/* Low Stock Alerts */}
-          <Card className="bg-card border-border elevation-sm p-6">
-            <div className="flex items-center gap-2 mb-6">
+          <Card className="bg-card border-border elevation-sm p-4 sm:p-6">
+            <div className="flex items-center gap-2 mb-4 sm:mb-6">
               <AlertTriangle className="w-5 h-5 text-chart-4" />
-              <h3 className="text-lg font-medium text-foreground leading-snug">Low Stock Alerts</h3>
+              <h3 className="text-base sm:text-lg font-medium text-foreground leading-snug">Low Stock Alerts</h3>
             </div>
             <div className="space-y-3">
               {lowStockItems.length > 0 ? (
                 lowStockItems.map((item) => (
                   <div
                     key={item.id}
-                    className="p-4 bg-muted rounded-lg cursor-pointer hover:bg-border transition-colors"
+                    className="p-3 sm:p-4 bg-muted rounded-lg cursor-pointer hover:bg-border transition-colors touch-manipulation"
                     onClick={() => onNavigate("itemDetail", { item })}
                   >
                     <h4 className="text-base font-medium text-foreground mb-1 leading-normal">{item.name}</h4>
@@ -408,8 +408,8 @@ export function ReportsInsights({ items, onNavigate, selectedItem, jobAssignment
           </Card>
 
           {/* Insights Summary */}
-          <Card className="bg-card border-border elevation-sm p-6">
-            <h3 className="text-lg font-medium text-foreground mb-6 leading-snug">Key Insights</h3>
+          <Card className="bg-card border-border elevation-sm p-4 sm:p-6">
+            <h3 className="text-base sm:text-lg font-medium text-foreground mb-4 sm:mb-6 leading-snug">Key Insights</h3>
             <div className="space-y-4">
               <div>
                 <h4 className="text-base font-medium text-foreground mb-2 leading-normal">Most Used Items</h4>

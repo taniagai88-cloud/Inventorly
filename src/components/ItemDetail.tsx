@@ -160,9 +160,9 @@ export function ItemDetail({ item, onNavigate, onDelete, onUpdateItem, jobAssign
           </div>
 
           {/* Header */}
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 mb-8">
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 sm:gap-8 mb-6 sm:mb-8">
             {/* Image */}
-            <div className="w-full h-96 bg-white rounded-lg flex items-center justify-center p-8">
+            <div className="w-full h-64 sm:h-80 lg:h-96 bg-white rounded-lg flex items-center justify-center p-4 sm:p-8">
               {item.imageUrl ? (
                 <ImageWithFallback
                   src={item.imageUrl}
@@ -170,7 +170,7 @@ export function ItemDetail({ item, onNavigate, onDelete, onUpdateItem, jobAssign
                   className="w-full h-full object-contain"
                 />
               ) : (
-                <Package className="w-24 h-24 text-muted-foreground" />
+                <Package className="w-16 h-16 sm:w-24 sm:h-24 text-muted-foreground" />
               )}
             </div>
 
@@ -199,38 +199,41 @@ export function ItemDetail({ item, onNavigate, onDelete, onUpdateItem, jobAssign
               </div>
 
               {/* Action Buttons */}
-              <div className="flex gap-3">
+              <div className="flex flex-col sm:flex-row gap-2 sm:gap-3">
                 <Button
                   onClick={() => onNavigate("assignToJob", { item })}
-                  className="flex-1"
+                  className="flex-1 min-h-[44px] touch-manipulation"
                   disabled={displayItem.availableQuantity === 0}
                 >
                   Assign to Job
                 </Button>
-                <Button variant="outline" onClick={handleEdit}>
-                  <Edit className="w-4 h-4" />
-                </Button>
-                <Button
-                  variant="outline"
-                  onClick={() => setDeleteDialogOpen(true)}
-                >
-                  <Trash2 className="w-4 h-4 text-destructive" />
-                </Button>
+                <div className="flex gap-2 sm:gap-3">
+                  <Button variant="outline" onClick={handleEdit} className="min-h-[44px] min-w-[44px] touch-manipulation">
+                    <Edit className="w-4 h-4" />
+                  </Button>
+                  <Button
+                    variant="outline"
+                    onClick={() => setDeleteDialogOpen(true)}
+                    className="min-h-[44px] min-w-[44px] touch-manipulation"
+                  >
+                    <Trash2 className="w-4 h-4 text-destructive" />
+                  </Button>
+                </div>
               </div>
             </div>
           </div>
 
           {/* Tabs */}
           <Tabs defaultValue="overview">
-            <TabsList className="mb-6">
-              <TabsTrigger value="overview">Overview</TabsTrigger>
-              <TabsTrigger value="history">History</TabsTrigger>
-              <TabsTrigger value="analytics">Analytics</TabsTrigger>
+            <TabsList className="mb-4 sm:mb-6 w-full sm:w-auto overflow-x-auto">
+              <TabsTrigger value="overview" className="min-h-[44px] px-3 sm:px-4 touch-manipulation">Overview</TabsTrigger>
+              <TabsTrigger value="history" className="min-h-[44px] px-3 sm:px-4 touch-manipulation">History</TabsTrigger>
+              <TabsTrigger value="analytics" className="min-h-[44px] px-3 sm:px-4 touch-manipulation">Analytics</TabsTrigger>
             </TabsList>
 
             <TabsContent value="overview">
-              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                <Card className="bg-card border-border elevation-sm p-6">
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6">
+                <Card className="bg-card border-border elevation-sm p-4 sm:p-6">
                   <h3 className="text-lg font-medium text-foreground mb-4 leading-snug">Basic Information</h3>
                   <div className="space-y-4">
                     <div>

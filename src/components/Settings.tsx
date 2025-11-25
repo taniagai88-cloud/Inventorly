@@ -47,36 +47,37 @@ export function Settings({ onNavigate }: SettingsProps) {
   return (
     <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
       {/* Header */}
-      <div className="flex items-center justify-between mb-6">
-        <div className="flex items-center gap-4">
+      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 mb-6">
+        <div className="flex items-center gap-2 sm:gap-4 w-full sm:w-auto">
           <Button
             variant="ghost"
             size="sm"
             onClick={() => onNavigate("dashboard")}
-            className="gap-2"
+            className="gap-2 min-h-[44px] touch-manipulation"
           >
             <ArrowLeft className="w-4 h-4" />
             Back
           </Button>
-          <div>
-            <h1 className="text-2xl font-semibold text-foreground">Settings</h1>
-            <p className="text-muted-foreground text-sm">Manage your staging dates, pricing, and warehouse location</p>
+          <div className="flex-1 min-w-0">
+            <h1 className="text-xl sm:text-2xl font-semibold text-foreground">Settings</h1>
+            <p className="text-muted-foreground text-xs sm:text-sm hidden sm:block">Manage your staging dates, pricing, and warehouse location</p>
           </div>
         </div>
-        <Button onClick={handleSave} className="gap-2">
+        <Button onClick={handleSave} className="gap-2 w-full sm:w-auto min-h-[44px] touch-manipulation">
           <Save className="w-4 h-4" />
-          Save Settings
+          <span className="hidden sm:inline">Save Settings</span>
+          <span className="sm:hidden">Save</span>
         </Button>
       </div>
 
       <div className="space-y-6">
         {/* Staging Dates Section */}
-        <Card className="bg-card border-border elevation-sm p-6">
+        <Card className="bg-card border-border elevation-sm p-4 sm:p-6">
           <div className="flex items-center gap-2 mb-4">
             <Calendar className="w-5 h-5 text-foreground" />
-            <h2 className="text-xl font-semibold text-foreground leading-snug">Staging Dates</h2>
+            <h2 className="text-lg sm:text-xl font-semibold text-foreground leading-snug">Staging Dates</h2>
           </div>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-6">
             <div>
               <Label htmlFor="defaultStagingPeriod" className="text-foreground">
                 Default Staging Period (days)

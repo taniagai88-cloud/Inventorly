@@ -608,7 +608,7 @@ table.invoice-table th:nth-child(4) {
   align-items: flex-end;
 }
 
-/* Mobile */
+/* Mobile Optimizations */
 @media (max-width: 768px) {
   .invoice-summary-header,
   .invoice-summary-row {
@@ -627,6 +627,61 @@ table.invoice-table th:nth-child(4) {
   .invoice-summary-header-cell,
   .invoice-summary-cell {
     text-align: left !important;
+  }
+
+  /* Touch-friendly interactions */
+  button, a, [role="button"] {
+    touch-action: manipulation;
+    -webkit-tap-highlight-color: rgba(0, 0, 0, 0.1);
+  }
+
+  /* Prevent text size adjustment on iOS */
+  input, textarea, select {
+    font-size: 16px !important;
+  }
+
+  /* Better scrolling on mobile */
+  * {
+    -webkit-overflow-scrolling: touch;
+  }
+
+  /* Hide scrollbars but keep functionality */
+  .scrollbar-hide {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+  }
+
+  .scrollbar-hide::-webkit-scrollbar {
+    display: none;
+  }
+}
+
+/* Touch manipulation utility */
+.touch-manipulation {
+  touch-action: manipulation;
+  -webkit-tap-highlight-color: rgba(0, 0, 0, 0.1);
+}
+
+/* Mobile-specific spacing adjustments */
+@media (max-width: 640px) {
+  /* Reduce padding on mobile */
+  .max-w-7xl {
+    padding-left: 1rem;
+    padding-right: 1rem;
+  }
+
+  /* Better button spacing */
+  .flex.gap-3 > * {
+    margin-right: 0.5rem;
+  }
+
+  /* Card padding adjustments */
+  .p-6 {
+    padding: 1rem;
+  }
+
+  .p-8 {
+    padding: 1.25rem;
   }
 }
 

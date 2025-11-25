@@ -32,7 +32,7 @@ export function ImageWithFallback(props: React.ImgHTMLAttributes<HTMLImageElemen
   }
 
   const { src, alt, style, className, ...rest } = props
-  
+
   // Reset error state when src changes
   useEffect(() => {
     setDidError(false)
@@ -43,10 +43,10 @@ export function ImageWithFallback(props: React.ImgHTMLAttributes<HTMLImageElemen
 
   if (!resolvedSrc) {
     return (
-      <div
+    <div
         className={`inline-block bg-muted text-center align-middle flex items-center justify-center ${className ?? ''}`}
-        style={style}
-      >
+      style={style}
+    >
         <Package className="w-8 h-8 text-muted-foreground" />
       </div>
     )
@@ -59,7 +59,7 @@ export function ImageWithFallback(props: React.ImgHTMLAttributes<HTMLImageElemen
         style={style}
       >
         <Package className="w-8 h-8 text-muted-foreground" />
-      </div>
+    </div>
     )
   }
 

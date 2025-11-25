@@ -85,26 +85,27 @@ export function AllProjects({ jobAssignments, onNavigate }: AllProjectsProps) {
           animate={{ opacity: 1, y: 0 }}
         >
           {/* Header */}
-          <div className="flex items-center justify-between mb-6">
+          <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 mb-4 sm:mb-6">
             <div>
-              <h1 className="text-foreground text-2xl font-bold">All Projects</h1>
-              <p className="text-muted-foreground">
+              <h1 className="text-foreground text-xl sm:text-2xl font-bold">All Projects</h1>
+              <p className="text-muted-foreground text-sm sm:text-base">
                 {sortedProjects.length} {sortedProjects.length === 1 ? "project" : "projects"}
               </p>
             </div>
-            <Button onClick={() => onNavigate("assignToJob")}>
+            <Button onClick={() => onNavigate("assignToJob")} className="w-full sm:w-auto min-h-[44px] touch-manipulation">
               <FolderPlus className="w-4 h-4 mr-2" />
-              Create Project
+              <span className="hidden sm:inline">Create Project</span>
+              <span className="sm:hidden">Create</span>
             </Button>
           </div>
 
           {/* Filters and View Toggle */}
-          <div className="flex items-center justify-between mb-6">
-            <div className="flex gap-2">
+          <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 sm:gap-4 mb-4 sm:mb-6">
+            <div className="flex gap-2 w-full sm:w-auto">
               <Button
                 variant={projectView === "card" ? "default" : "outline"}
                 size="sm"
-                className="gap-2"
+                className="gap-2 flex-1 sm:flex-initial min-h-[44px] touch-manipulation"
                 onClick={() => setProjectView("card")}
               >
                 <LayoutGrid className="w-4 h-4" />
@@ -113,7 +114,7 @@ export function AllProjects({ jobAssignments, onNavigate }: AllProjectsProps) {
               <Button
                 variant={projectView === "calendar" ? "default" : "outline"}
                 size="sm"
-                className="gap-2"
+                className="gap-2 flex-1 sm:flex-initial min-h-[44px] touch-manipulation"
                 onClick={() => setProjectView("calendar")}
               >
                 <CalendarIcon className="w-4 h-4" />
@@ -122,7 +123,7 @@ export function AllProjects({ jobAssignments, onNavigate }: AllProjectsProps) {
             </div>
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
-                <Button variant="outline" size="sm" className="gap-2">
+                <Button variant="outline" size="sm" className="gap-2 w-full sm:w-auto min-h-[44px] touch-manipulation">
                   <Filter className="w-4 h-4" />
                   {projectFilter === "all" ? "All" : projectFilter === "staged" ? "Staged" : "Upcoming"}
                 </Button>
@@ -137,7 +138,7 @@ export function AllProjects({ jobAssignments, onNavigate }: AllProjectsProps) {
 
           {/* Content */}
           {projectView === "card" ? (
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
               {sortedProjects.map((job, index) => {
                 const projectItems = getProjectItemIds(job);
                 const daysLeft = getDaysLeft(job.stagingDate);
@@ -151,7 +152,7 @@ export function AllProjects({ jobAssignments, onNavigate }: AllProjectsProps) {
                     transition={{ delay: index * 0.05 }}
                   >
                     <Card
-                      className="bg-card border-border elevation-sm p-6 cursor-pointer hover:elevation-md transition-shadow h-full group"
+                      className="bg-card border-border elevation-sm p-4 sm:p-6 cursor-pointer hover:elevation-md transition-shadow h-full group touch-manipulation"
                       onClick={() => onNavigate("projectDetail", { project: job })}
                     >
                       <div className="flex items-start justify-between mb-4">
@@ -167,7 +168,7 @@ export function AllProjects({ jobAssignments, onNavigate }: AllProjectsProps) {
                           return (
                             <Badge variant={status === "staged" ? "default" : "secondary"}>
                               {status === "staged" ? "Staged" : status === "upcoming" ? "Upcoming" : "Pending"}
-                            </Badge>
+                        </Badge>
                           );
                         })()}
                       </div>
@@ -275,7 +276,7 @@ export function AllProjects({ jobAssignments, onNavigate }: AllProjectsProps) {
                                 return (
                                   <Badge variant={status === "staged" ? "default" : "secondary"} className="text-xs">
                                     {status === "staged" ? "Staged" : status === "upcoming" ? "Upcoming" : "Pending"}
-                                  </Badge>
+                              </Badge>
                                 );
                               })()}
                             </div>

@@ -157,24 +157,24 @@ export function ProjectsSection({
           >
             <FolderPlus className="w-4 h-4 mr-2" />
             Create Project
-          </Button>
+              </Button>
           <div className="ml-auto">
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild>
-                <Button variant="outline" size="sm" className="gap-2">
-                  <ArrowUpDown className="w-4 h-4" />
-                  {sortOrder === "earliest" ? "Earliest" : "Latest"}
-                </Button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent align="end">
-                <DropdownMenuItem onClick={() => setSortOrder?.("earliest")}>
-                  Earliest First
-                </DropdownMenuItem>
-                <DropdownMenuItem onClick={() => setSortOrder?.("latest")}>
-                  Latest First
-                </DropdownMenuItem>
-              </DropdownMenuContent>
-            </DropdownMenu>
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button variant="outline" size="sm" className="gap-2">
+                <ArrowUpDown className="w-4 h-4" />
+                {sortOrder === "earliest" ? "Earliest" : "Latest"}
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end">
+              <DropdownMenuItem onClick={() => setSortOrder?.("earliest")}>
+                Earliest First
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={() => setSortOrder?.("latest")}>
+                Latest First
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
           </div>
         </div>
       </div>

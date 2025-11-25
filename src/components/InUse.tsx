@@ -29,7 +29,7 @@ export function InUse({ items, onNavigate, jobAssignments = [] }: InUseProps) {
     const accurateQuantities = getAccurateItemQuantities(item, activeJobAssignments);
     return { ...item, ...accurateQuantities };
   });
-  
+
   // Filter items that are in use
   const inUseItems = itemsWithAccurateQuantities.filter((item) => item.inUseQuantity > 0);
 
@@ -64,12 +64,12 @@ export function InUse({ items, onNavigate, jobAssignments = [] }: InUseProps) {
         </div>
 
         {/* View Toggle */}
-        <div className="flex gap-2 bg-muted p-1 rounded-lg">
+        <div className="flex gap-2 bg-muted p-1 rounded-lg w-full sm:w-auto">
           <Button
             variant={viewMode === "card" ? "default" : "ghost"}
             size="sm"
             onClick={() => setViewMode("card")}
-            className="gap-2"
+            className="gap-2 flex-1 sm:flex-initial min-h-[44px] touch-manipulation"
           >
             <LayoutGrid className="w-4 h-4" />
             Cards
@@ -78,7 +78,7 @@ export function InUse({ items, onNavigate, jobAssignments = [] }: InUseProps) {
             variant={viewMode === "list" ? "default" : "ghost"}
             size="sm"
             onClick={() => setViewMode("list")}
-            className="gap-2"
+            className="gap-2 flex-1 sm:flex-initial min-h-[44px] touch-manipulation"
           >
             <List className="w-4 h-4" />
             List
@@ -88,7 +88,7 @@ export function InUse({ items, onNavigate, jobAssignments = [] }: InUseProps) {
 
       {/* Card View */}
       {viewMode === "card" && (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
           {inUseItems.map((item, index) => {
             const jobs = getItemJobs(item.id);
             return (
@@ -98,7 +98,7 @@ export function InUse({ items, onNavigate, jobAssignments = [] }: InUseProps) {
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: index * 0.05 }}
               >
-                <Card className="bg-card border-border elevation-sm overflow-hidden hover:elevation-md transition-shadow cursor-pointer">
+                <Card className="bg-card border-border elevation-sm overflow-hidden hover:elevation-md transition-shadow cursor-pointer touch-manipulation">
                   <div onClick={() => onNavigate("itemDetail", { item })}>
                     {/* Image */}
                     <div className="aspect-square bg-white flex items-center justify-center p-6">
@@ -114,10 +114,10 @@ export function InUse({ items, onNavigate, jobAssignments = [] }: InUseProps) {
                     </div>
 
                     {/* Content */}
-                    <div className="p-6">
+                    <div className="p-4 sm:p-6">
                       <div className="flex items-start justify-between gap-2 mb-3">
-                        <h3 className="text-foreground">{item.name}</h3>
-                        <Badge className="bg-chart-2 text-secondary-foreground shrink-0">
+                        <h3 className="text-foreground text-sm sm:text-base">{item.name}</h3>
+                        <Badge className="bg-chart-2 text-secondary-foreground shrink-0 text-xs">
                           {item.category}
                         </Badge>
                       </div>
@@ -185,16 +185,16 @@ export function InUse({ items, onNavigate, jobAssignments = [] }: InUseProps) {
           animate={{ opacity: 1 }}
           className="bg-card border border-border rounded-lg overflow-hidden elevation-sm"
         >
-          <div className="overflow-x-auto">
-            <table className="w-full">
+          <div className="overflow-x-auto scrollbar-hide">
+            <table className="w-full min-w-[640px]">
               <thead className="bg-muted">
                 <tr>
-                  <th className="px-6 py-4 text-left text-muted-foreground">Item</th>
-                  <th className="px-6 py-4 text-left text-muted-foreground">Category</th>
-                  <th className="px-6 py-4 text-left text-muted-foreground">Location</th>
-                  <th className="px-6 py-4 text-left text-muted-foreground">In Use</th>
-                  <th className="px-6 py-4 text-left text-muted-foreground">Utilization</th>
-                  <th className="px-6 py-4 text-left text-muted-foreground">Active Jobs</th>
+                  <th className="px-4 sm:px-6 py-3 sm:py-4 text-left text-muted-foreground text-xs sm:text-sm">Item</th>
+                  <th className="px-4 sm:px-6 py-3 sm:py-4 text-left text-muted-foreground text-xs sm:text-sm">Category</th>
+                  <th className="px-4 sm:px-6 py-3 sm:py-4 text-left text-muted-foreground text-xs sm:text-sm">Location</th>
+                  <th className="px-4 sm:px-6 py-3 sm:py-4 text-left text-muted-foreground text-xs sm:text-sm">In Use</th>
+                  <th className="px-4 sm:px-6 py-3 sm:py-4 text-left text-muted-foreground text-xs sm:text-sm">Utilization</th>
+                  <th className="px-4 sm:px-6 py-3 sm:py-4 text-left text-muted-foreground text-xs sm:text-sm">Active Jobs</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-border">
@@ -210,11 +210,11 @@ export function InUse({ items, onNavigate, jobAssignments = [] }: InUseProps) {
                       initial={{ opacity: 0 }}
                       animate={{ opacity: 1 }}
                       transition={{ delay: index * 0.03 }}
-                      className="hover:bg-muted/50 cursor-pointer transition-colors"
+                      className="hover:bg-muted/50 cursor-pointer transition-colors touch-manipulation"
                       onClick={() => onNavigate("itemDetail", { item })}
                     >
                       {/* Item */}
-                      <td className="px-6 py-4">
+                      <td className="px-4 sm:px-6 py-3 sm:py-4">
                         <div className="flex items-center gap-3">
                           <div className="w-12 h-12 rounded-lg bg-white flex items-center justify-center shrink-0">
                             {item.imageUrl ? (

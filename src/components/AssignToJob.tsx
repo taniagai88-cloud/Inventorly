@@ -154,8 +154,8 @@ export function AssignToJob({ item, onNavigate, onCreateJob, jobAssignments = []
           </DialogHeader>
 
           {/* Item Info */}
-          <Card className="bg-muted border-0 p-4 mb-6">
-            <div className="flex items-center gap-4">
+          <Card className="bg-muted border-0 p-3 sm:p-4 mb-4 sm:mb-6">
+            <div className="flex items-center gap-3 sm:gap-4">
               <div className="w-16 h-16 bg-background rounded-lg flex items-center justify-center overflow-hidden">
                 {item.imageUrl ? (
                   <ImageWithFallback
@@ -186,7 +186,7 @@ export function AssignToJob({ item, onNavigate, onCreateJob, jobAssignments = []
                     {activeProjects.map((project) => (
                       <Card
                         key={project.id}
-                        className="bg-card border-border elevation-sm p-4 cursor-pointer hover:elevation-md transition-shadow"
+                        className="bg-card border-border elevation-sm p-3 sm:p-4 cursor-pointer hover:elevation-md transition-shadow touch-manipulation"
                         onClick={() => handleAssignToExistingProject(project)}
                       >
                         <div className="flex items-start justify-between">
@@ -224,6 +224,7 @@ export function AssignToJob({ item, onNavigate, onCreateJob, jobAssignments = []
                               handleAssignToExistingProject(project);
                             }}
                             disabled={isLoading}
+                            className="min-h-[44px] touch-manipulation"
                           >
                             Assign
                           </Button>
@@ -268,8 +269,8 @@ export function AssignToJob({ item, onNavigate, onCreateJob, jobAssignments = []
                   </Button>
                 </div>
 
-                <Card className="bg-card border-border elevation-sm p-6">
-                  <form onSubmit={handleSubmit} className="space-y-6">
+                <Card className="bg-card border-border elevation-sm p-4 sm:p-6">
+                  <form onSubmit={handleSubmit} className="space-y-4 sm:space-y-6">
                     <div className="space-y-2">
                       <Label htmlFor="clientName">
                         Client Name <span className="text-destructive">*</span>
@@ -401,12 +402,12 @@ export function AssignToJob({ item, onNavigate, onCreateJob, jobAssignments = []
                       />
                     </div>
 
-                    <div className="flex gap-3 pt-4">
+                    <div className="flex flex-col sm:flex-row gap-2 sm:gap-3 pt-4">
                       <Button
                         type="button"
                         variant="outline"
                         onClick={() => setShowCreateForm(false)}
-                        className="flex-1"
+                        className="flex-1 sm:flex-initial min-h-[44px] touch-manipulation"
                       >
                         Cancel
                       </Button>
@@ -418,7 +419,7 @@ export function AssignToJob({ item, onNavigate, onCreateJob, jobAssignments = []
                           !jobLocation ||
                           parseInt(quantity) > item.availableQuantity
                         }
-                        className="flex-1"
+                        className="flex-1 sm:flex-initial min-h-[44px] touch-manipulation"
                       >
                         {isLoading ? "Creating..." : "Create & Assign"}
                       </Button>
@@ -453,11 +454,11 @@ export function AssignToJob({ item, onNavigate, onCreateJob, jobAssignments = []
             </Button>
           </div>
 
-          <h2 className="text-xl font-semibold text-foreground mb-6 leading-snug">Assign to Job</h2>
+          <h2 className="text-lg sm:text-xl font-semibold text-foreground mb-4 sm:mb-6 leading-snug">Assign to Job</h2>
 
           {/* Form */}
-          <Card className="bg-card border-border elevation-sm p-6">
-            <form onSubmit={handleSubmit} className="space-y-6">
+          <Card className="bg-card border-border elevation-sm p-4 sm:p-6">
+            <form onSubmit={handleSubmit} className="space-y-4 sm:space-y-6">
               <div className="space-y-2">
                 <Label htmlFor="clientName">
                   Client Name <span className="text-destructive">*</span>
@@ -572,12 +573,12 @@ export function AssignToJob({ item, onNavigate, onCreateJob, jobAssignments = []
                 />
               </div>
 
-              <div className="flex gap-3 pt-4">
+              <div className="flex flex-col sm:flex-row gap-2 sm:gap-3 pt-4">
                 <Button
                   type="button"
                   variant="outline"
                   onClick={() => onNavigate("dashboard")}
-                  className="flex-1"
+                  className="flex-1 sm:flex-initial min-h-[44px] touch-manipulation"
                 >
                   Cancel
                 </Button>
@@ -588,7 +589,7 @@ export function AssignToJob({ item, onNavigate, onCreateJob, jobAssignments = []
                     !clientName ||
                     !jobLocation
                   }
-                  className="flex-1"
+                  className="flex-1 sm:flex-initial min-h-[44px] touch-manipulation"
                 >
                   {isLoading ? "Creating..." : "Create"}
                 </Button>

@@ -86,6 +86,14 @@ const DEFAULT_LAYOUTS = {
     { i: "topItems", x: 0, y: 18, w: 6, h: 8, minW: 6, minH: 6 },
     { i: "insights", x: 0, y: 26, w: 6, h: 3, minW: 6, minH: 3 },
   ],
+  xs: [
+    { i: "aiAssistant", x: 0, y: 0, w: 4, h: 4, minW: 4, minH: 3 },
+    { i: "projects", x: 0, y: 4, w: 4, h: 7, minW: 4, minH: 5 },
+    { i: "kpis", x: 0, y: 11, w: 4, h: 5, minW: 4, minH: 4 },
+    { i: "quickActions", x: 0, y: 16, w: 4, h: 2, minW: 4, minH: 2 },
+    { i: "topItems", x: 0, y: 18, w: 4, h: 8, minW: 4, minH: 6 },
+    { i: "insights", x: 0, y: 26, w: 4, h: 3, minW: 4, minH: 3 },
+  ],
 };
 
 export function GridDashboard({ onNavigate, jobAssignments }: DashboardProps) {
@@ -295,17 +303,18 @@ export function GridDashboard({ onNavigate, jobAssignments }: DashboardProps) {
     lg: layouts.lg.filter(l => visibleSections[l.i as keyof DashboardSections]),
     md: layouts.md.filter(l => visibleSections[l.i as keyof DashboardSections]),
     sm: layouts.sm.filter(l => visibleSections[l.i as keyof DashboardSections]),
+    xs: layouts.xs?.filter(l => visibleSections[l.i as keyof DashboardSections]) || [],
   };
 
   return (
     <div className="max-w-7xl mx-auto" style={{ padding: 'var(--spacing-8) var(--spacing-4)' }}>
       {/* Header */}
-      <div className="flex justify-between items-center" style={{ marginBottom: 'var(--spacing-6)' }}>
+      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4" style={{ marginBottom: 'var(--spacing-6)' }}>
         <div>
-          <h1 className="text-foreground" style={{ marginBottom: 'var(--spacing-1)' }}>Dashboard</h1>
-          <p className="text-muted-foreground">Drag and resize sections to customize your layout</p>
+          <h1 className="text-foreground text-xl sm:text-2xl" style={{ marginBottom: 'var(--spacing-1)' }}>Dashboard</h1>
+          <p className="text-muted-foreground text-sm hidden sm:block">Drag and resize sections to customize your layout</p>
         </div>
-        <div className="flex" style={{ gap: 'var(--spacing-2)' }}>
+        <div className="flex flex-wrap w-full sm:w-auto" style={{ gap: 'var(--spacing-2)' }}>
           <Button
             variant={isEditMode ? "default" : "outline"}
             onClick={() => {
@@ -313,15 +322,18 @@ export function GridDashboard({ onNavigate, jobAssignments }: DashboardProps) {
               toast.success(isEditMode ? "Edit mode disabled" : "Edit mode enabled - drag to rearrange");
             }}
             style={{ gap: 'var(--spacing-2)' }}
+            className="flex-1 sm:flex-initial min-h-[44px]"
           >
             <LayoutGrid className="w-4 h-4" />
-            {isEditMode ? "Done Editing" : "Edit Layout"}
+            <span className="hidden sm:inline">{isEditMode ? "Done Editing" : "Edit Layout"}</span>
+            <span className="sm:hidden">{isEditMode ? "Done" : "Edit"}</span>
           </Button>
           <Sheet open={customizeSheetOpen} onOpenChange={setCustomizeSheetOpen}>
             <SheetTrigger asChild>
-              <Button variant="outline" style={{ gap: 'var(--spacing-2)' }}>
+              <Button variant="outline" style={{ gap: 'var(--spacing-2)' }} className="flex-1 sm:flex-initial min-h-[44px]">
                 <LayoutGrid className="w-4 h-4" />
-                Sections
+                <span className="hidden sm:inline">Sections</span>
+                <span className="sm:hidden">Sections</span>
               </Button>
             </SheetTrigger>
             <SheetContent className="sm:max-w-xl">
@@ -452,13 +464,15 @@ export function GridDashboard({ onNavigate, jobAssignments }: DashboardProps) {
         <ResponsiveGridLayout
           className="layout"
           layouts={visibleLayouts}
-          breakpoints={{ lg: 1200, md: 996, sm: 768 }}
-          cols={{ lg: 12, md: 10, sm: 6 }}
+          breakpoints={{ lg: 1200, md: 996, sm: 768, xs: 480 }}
+          cols={{ lg: 12, md: 10, sm: 6, xs: 4 }}
           rowHeight={60}
           isDraggable={isEditMode}
           isResizable={isEditMode}
           onLayoutChange={handleLayoutChange}
           draggableHandle=".drag-handle"
+          compactType="vertical"
+          preventCollision={false}
         >
           {visibleSections.kpis && (
             <div key="kpis">
@@ -469,12 +483,11 @@ export function GridDashboard({ onNavigate, jobAssignments }: DashboardProps) {
                     <span className="text-muted-foreground">Drag to move</span>
                   </div>
                 )}
-                <div className="grid grid-cols-2 lg:grid-cols-4 h-full" style={{ gap: 'var(--spacing-6)' }}>
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 h-full gap-4 sm:gap-6">
                   {kpis.map((kpi) => (
                     <div
                       key={kpi.label}
-                      className="bg-card border border-border elevation-sm cursor-pointer hover:bg-muted/50 transition-colors"
-                      style={{ padding: 'var(--spacing-6)', borderRadius: 'var(--radius-lg)' }}
+                      className="bg-card border border-border elevation-sm cursor-pointer hover:bg-muted/50 transition-colors touch-manipulation p-4 sm:p-6 rounded-lg"
                       onClick={kpi.onClick}
                     >
                       <div className="flex items-start justify-between" style={{ marginBottom: 'var(--spacing-4)' }}>
@@ -508,15 +521,15 @@ export function GridDashboard({ onNavigate, jobAssignments }: DashboardProps) {
                     <span className="text-muted-foreground">Drag to move</span>
                   </div>
                 )}
-                <div className="flex flex-col sm:flex-row h-full items-center justify-center" style={{ gap: 'var(--spacing-4)' }}>
+                <div className="flex flex-col sm:flex-row h-full items-stretch sm:items-center justify-center gap-3 sm:gap-4">
                   <Button 
                     onClick={() => onNavigate("addItem")} 
-                    className="flex-1 w-full bg-primary text-white hover:!bg-secondary transition-colors"
+                    className="flex-1 w-full bg-primary text-white hover:!bg-secondary transition-colors min-h-[44px] touch-manipulation"
                   >
                     <Plus className="w-4 h-4" style={{ marginRight: 'var(--spacing-2)' }} />
                     Add Item
                   </Button>
-                  <Button onClick={() => onNavigate("assignToJob")} variant="outline" className="flex-1 w-full">
+                  <Button onClick={() => onNavigate("assignToJob")} variant="outline" className="flex-1 w-full min-h-[44px] touch-manipulation">
                     <FolderPlus className="w-4 h-4" style={{ marginRight: 'var(--spacing-2)' }} />
                     Create Project
                   </Button>
@@ -569,27 +582,27 @@ export function GridDashboard({ onNavigate, jobAssignments }: DashboardProps) {
                       Create Project
                     </Button>
                     <div className="ml-auto">
-                      <DropdownMenu>
-                        <DropdownMenuTrigger asChild>
-                          <Button variant="outline" size="sm" style={{ gap: 'var(--spacing-2)' }}>
+                    <DropdownMenu>
+                      <DropdownMenuTrigger asChild>
+                        <Button variant="outline" size="sm" style={{ gap: 'var(--spacing-2)' }}>
                             <ArrowUpDown className="w-4 h-4" />
                             {sortOrder === "earliest" ? "Earliest" : "Latest"}
-                          </Button>
-                        </DropdownMenuTrigger>
-                        <DropdownMenuContent align="end">
+                        </Button>
+                      </DropdownMenuTrigger>
+                      <DropdownMenuContent align="end">
                           <DropdownMenuItem onClick={() => setSortOrder("earliest")}>
                             Earliest First
                           </DropdownMenuItem>
                           <DropdownMenuItem onClick={() => setSortOrder("latest")}>
                             Latest First
                           </DropdownMenuItem>
-                        </DropdownMenuContent>
-                      </DropdownMenu>
+                      </DropdownMenuContent>
+                    </DropdownMenu>
                     </div>
                   </div>
                 </div>
 
-                <div className="grid grid-cols-1 lg:grid-cols-3" style={{ gap: 'var(--spacing-4)' }}>
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3" style={{ gap: 'var(--spacing-4)' }}>
                   {activeProjects.map((job) => {
                     const projectItems = getProjectItemIds(job);
                     const daysLeft = getDaysLeft(job.stagingDate);
@@ -630,7 +643,7 @@ export function GridDashboard({ onNavigate, jobAssignments }: DashboardProps) {
                         )}
 
                         <div className="space-y-1">
-                          <p className="text-muted-foreground group-hover:text-white transition-colors">{projectItems.length} items</p>
+                        <p className="text-muted-foreground group-hover:text-white transition-colors">{projectItems.length} items</p>
                           {job.roomPricing && Object.keys(job.roomPricing).length > 0 && (
                             <p className="text-foreground font-medium group-hover:text-white transition-colors" style={{ fontSize: 'var(--font-size-sm)' }}>
                               {new Intl.NumberFormat('en-US', {
@@ -679,13 +692,13 @@ export function GridDashboard({ onNavigate, jobAssignments }: DashboardProps) {
                   <p className="text-muted-foreground">Your most frequently used items</p>
                 </div>
 
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5" style={{ gap: 'var(--spacing-4)', flex: 1, minHeight: 0, alignContent: 'start' }}>
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-3 sm:gap-4" style={{ flex: 1, minHeight: 0, alignContent: 'start' }}>
                   {topItems.map((item) => {
                     const status = getStockStatus(item);
                     return (
                       <div
                         key={item.id}
-                        className="border border-border cursor-pointer hover:bg-muted transition-colors flex flex-col"
+                        className="border border-border cursor-pointer hover:bg-muted transition-colors flex flex-col touch-manipulation"
                         style={{ padding: 'var(--spacing-3)', borderRadius: 'var(--radius-lg)' }}
                         onClick={() => handleTopItemClick(item)}
                       >

@@ -159,11 +159,11 @@ export function AddItem({ onNavigate, onSave, previousState = "dashboard" }: Add
         </div>
 
         {/* Progress Indicator */}
-        <div className="flex items-center justify-center gap-4 mb-8">
+        <div className="flex items-center justify-center gap-2 sm:gap-4 mb-6 sm:mb-8 overflow-x-auto pb-2">
           {["Photo", "Tags", "Review"].map((label, index) => (
-            <div key={label} className="flex items-center gap-2">
+            <div key={label} className="flex items-center gap-1.5 sm:gap-2 flex-shrink-0">
               <div
-                className={`w-8 h-8 rounded-full flex items-center justify-center border-2 ${
+                className={`w-8 h-8 sm:w-10 sm:h-10 rounded-full flex items-center justify-center border-2 text-sm sm:text-base ${
                   index <= stepIndex
                     ? "bg-primary border-primary text-primary-foreground"
                     : "border-border text-muted-foreground"
@@ -176,13 +176,13 @@ export function AddItem({ onNavigate, onSave, previousState = "dashboard" }: Add
                 )}
               </div>
               <span
-                className={
+                className={`text-xs sm:text-sm ${
                   index <= stepIndex ? "text-foreground" : "text-muted-foreground"
-                }
+                }`}
               >
                 {label}
               </span>
-              {index < 2 && <div className="w-12 h-0.5 bg-border" />}
+              {index < 2 && <div className="w-8 sm:w-12 h-0.5 bg-border hidden sm:block" />}
             </div>
           ))}
         </div>
@@ -206,22 +206,22 @@ export function AddItem({ onNavigate, onSave, previousState = "dashboard" }: Add
                 </p>
               </div>
 
-              <div className="space-y-4">
+              <div className="space-y-3 sm:space-y-4">
                 <Button
                   onClick={() => handlePhotoUpload("camera")}
                   variant="outline"
-                  className="w-full h-24"
+                  className="w-full h-20 sm:h-24 min-h-[44px] touch-manipulation"
                 >
-                  <Camera className="w-6 h-6 mr-3" />
+                  <Camera className="w-5 h-5 sm:w-6 sm:h-6 mr-2 sm:mr-3" />
                   <span>Take Photo</span>
                 </Button>
 
                 <Button
                   onClick={() => handlePhotoUpload("upload")}
                   variant="outline"
-                  className="w-full h-24"
+                  className="w-full h-20 sm:h-24 min-h-[44px] touch-manipulation"
                 >
-                  <Upload className="w-6 h-6 mr-3" />
+                  <Upload className="w-5 h-5 sm:w-6 sm:h-6 mr-2 sm:mr-3" />
                   <span>Upload Photo</span>
                 </Button>
               </div>
@@ -285,12 +285,12 @@ export function AddItem({ onNavigate, onSave, previousState = "dashboard" }: Add
               </div>
 
               {/* Form Fields */}
-              <div className="space-y-4">
+              <div className="space-y-4 sm:space-y-6">
                 <div className="space-y-2">
-                  <div className="flex items-center gap-2">
-                    <Label htmlFor="itemName">Item Name</Label>
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <Label htmlFor="itemName" className="text-sm sm:text-base">Item Name</Label>
                     {aiPopulated.includes("itemName") && (
-                      <Badge variant="secondary" className="h-5">
+                      <Badge variant="secondary" className="h-5 text-xs">
                         <Check className="w-3 h-3 mr-1" />
                         AI
                       </Badge>
@@ -303,7 +303,7 @@ export function AddItem({ onNavigate, onSave, previousState = "dashboard" }: Add
                       value={itemName}
                       onChange={(e) => setItemName(e.target.value)}
                       placeholder="Enter item name"
-                      className="pl-10"
+                      className="pl-10 min-h-[44px] text-base"
                     />
                   </div>
                 </div>
@@ -421,11 +421,11 @@ export function AddItem({ onNavigate, onSave, previousState = "dashboard" }: Add
                 </div>
               </div>
 
-              <div className="mt-8">
+              <div className="mt-6 sm:mt-8">
                 <Button
                   onClick={handleContinue}
                   disabled={!itemName || !category || !location || !purchaseCost}
-                  className="w-full bg-[var(--color-accent)] text-white hover:bg-[var(--color-secondary)]"
+                  className="w-full bg-[var(--color-accent)] text-white hover:bg-[var(--color-secondary)] min-h-[44px] touch-manipulation"
                 >
                   Continue
                 </Button>

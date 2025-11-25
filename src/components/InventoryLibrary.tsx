@@ -89,8 +89,8 @@ export function InventoryLibrary({ items, onNavigate, initialFilter = "all", job
         {/* Header */}
         <div className="flex items-center justify-between mb-6">
           <h2 className="text-xl font-semibold text-foreground leading-snug">Inventory Library</h2>
-        </div>
-
+                </div>
+                
         {/* AI Assistant as Search */}
         <div className="mb-6">
           <AIAssistant 
@@ -101,9 +101,9 @@ export function InventoryLibrary({ items, onNavigate, initialFilter = "all", job
         </div>
 
         {/* Sort */}
-        <div className="flex gap-4 mb-8">
+        <div className="flex gap-4 mb-6 sm:mb-8">
           <Select value={sortBy} onValueChange={setSortBy}>
-            <SelectTrigger className="w-48">
+            <SelectTrigger className="w-full sm:w-48 min-h-[44px]">
               <SelectValue placeholder="Sort by" />
             </SelectTrigger>
             <SelectContent>
@@ -117,7 +117,7 @@ export function InventoryLibrary({ items, onNavigate, initialFilter = "all", job
 
         {/* Items Grid */}
         {filteredItems.length > 0 ? (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
             {filteredItems.map((item, index) => {
               const activeProjects = jobAssignments.filter(job => job.status === "active");
               const status = getStockStatus(item);
@@ -130,7 +130,7 @@ export function InventoryLibrary({ items, onNavigate, initialFilter = "all", job
                   transition={{ delay: index * 0.05 }}
                 >
                   <Card
-                    className="bg-card border-border elevation-sm p-4 hover:elevation-md transition-shadow"
+                    className="bg-card border-border elevation-sm p-4 sm:p-6 hover:elevation-md transition-shadow touch-manipulation"
                   >
 
                     <div 
@@ -197,11 +197,11 @@ export function InventoryLibrary({ items, onNavigate, initialFilter = "all", job
         ) : (
           <Card className="bg-card border-border elevation-sm p-12 text-center">
             <Package className="w-16 h-16 text-muted-foreground mx-auto mb-4" />
-            <h3 className="text-lg font-medium text-foreground mb-2 leading-snug">No items found</h3>
-            <p className="text-sm font-normal text-muted-foreground mb-6 leading-relaxed">
-              Try adjusting your search or filters
-            </p>
-            <Button onClick={() => onNavigate("addItem")}>Add New Item</Button>
+                <h3 className="text-lg font-medium text-foreground mb-2 leading-snug">No items found</h3>
+                <p className="text-sm font-normal text-muted-foreground mb-6 leading-relaxed">
+                  Try adjusting your search or filters
+                </p>
+                <Button onClick={() => onNavigate("addItem")}>Add New Item</Button>
           </Card>
         )}
       </motion.div>

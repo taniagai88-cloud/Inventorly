@@ -166,32 +166,32 @@ export function AIAssistant({ jobAssignments, items, onNavigate }: AIAssistantPr
   };
 
   return (
-    <Card className="bg-card border-border elevation-sm p-6">
-      <div className="flex items-center gap-2 mb-4">
-        <div className="w-8 h-8 bg-gradient-to-br from-primary to-chart-2 rounded-lg flex items-center justify-center">
+    <Card className="bg-card border-border elevation-sm p-4 sm:p-6">
+      <div className="flex items-center gap-2 mb-3 sm:mb-4">
+        <div className="w-8 h-8 bg-gradient-to-br from-primary to-chart-2 rounded-lg flex items-center justify-center flex-shrink-0">
           <Sparkles className="w-4 h-4 text-primary-foreground" />
         </div>
-        <h3 className="text-foreground">AI Assistant</h3>
+        <h3 className="text-base sm:text-lg font-medium text-foreground">AI Assistant</h3>
       </div>
 
-      <p className="text-muted-foreground mb-4">
+      <p className="text-muted-foreground mb-3 sm:mb-4 text-sm">
         Ask me anything about your inventory and projects
       </p>
 
-      <div className="space-y-4">
-        <div className="flex gap-2">
+      <div className="space-y-3 sm:space-y-4">
+        <div className="flex flex-col sm:flex-row gap-2">
           <Textarea
             value={prompt}
             onChange={(e) => setPrompt(e.target.value)}
             onKeyDown={handleKeyDown}
             placeholder="e.g., Which projects are halfway through staging?"
-            className="resize-none"
+            className="resize-none flex-1 min-h-[44px] text-base"
             rows={2}
           />
           <Button
             onClick={handleSubmit}
             disabled={!prompt.trim() || isLoading}
-            className="self-end"
+            className="self-end sm:self-auto min-h-[44px] min-w-[44px] touch-manipulation"
           >
             {isLoading ? (
               <Loader2 className="w-4 h-4 animate-spin" />
@@ -207,11 +207,11 @@ export function AIAssistant({ jobAssignments, items, onNavigate }: AIAssistantPr
               initial={{ opacity: 0, y: 10 }}
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0, y: -10 }}
-              className="bg-muted rounded-lg p-4 space-y-3"
+              className="bg-muted rounded-lg p-3 sm:p-4 space-y-3"
             >
               <div className="flex items-start gap-2">
                 <Sparkles className="w-4 h-4 text-primary mt-1 flex-shrink-0" />
-                <p className="text-foreground whitespace-pre-line">
+                <p className="text-sm sm:text-base text-foreground whitespace-pre-line">
                   {response.answer.split("**").map((part, index) => 
                     index % 2 === 0 ? part : <strong key={index}>{part}</strong>
                   )}
@@ -225,7 +225,7 @@ export function AIAssistant({ jobAssignments, items, onNavigate }: AIAssistantPr
                       key={project.id}
                       initial={{ opacity: 0, x: -10 }}
                       animate={{ opacity: 1, x: 0 }}
-                      className="bg-card rounded-lg p-3 border border-border cursor-pointer hover:elevation-sm transition-shadow"
+                      className="bg-card rounded-lg p-3 border border-border cursor-pointer hover:elevation-sm transition-shadow touch-manipulation"
                       onClick={() => onNavigate("projectDetail", { project })}
                     >
                       <div className="flex items-start justify-between mb-2">

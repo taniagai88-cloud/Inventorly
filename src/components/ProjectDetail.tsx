@@ -130,7 +130,7 @@ export function ProjectDetail({ project, items, onNavigate, onUpdateJob }: Proje
         return sum + (room.price || 0) * (room.quantity || 0);
       }
       return sum;
-    }, 0);
+  }, 0);
     
     // Get delivery and pickup fees from settings
     const deliveryFee = getSetting("deliveryFee");
@@ -480,34 +480,34 @@ export function ProjectDetail({ project, items, onNavigate, onUpdateJob }: Proje
     if (lastSyncedProjectIdRef.current !== project.id) {
       lastSyncedProjectIdRef.current = project.id;
       
-      const rooms = project.roomAssignments ? Object.keys(project.roomAssignments) : [];
-      setSelectedRooms(rooms);
+    const rooms = project.roomAssignments ? Object.keys(project.roomAssignments) : [];
+    setSelectedRooms(rooms);
+    
+    // Update custom rooms from project
+    const projectCustomRooms = rooms.filter(room => !defaultRooms.includes(room));
+    setCustomRooms(projectCustomRooms);
+    
+    // Load saved pricing from project if available
+    if (project.roomPricing && Object.keys(project.roomPricing).length > 0) {
+      setRoomPricing({ ...project.roomPricing });
       
-      // Update custom rooms from project
-      const projectCustomRooms = rooms.filter(room => !defaultRooms.includes(room));
-      setCustomRooms(projectCustomRooms);
+      // Update roomPrices and roomQuantities from saved pricing
+      setRoomPrices(prev => {
+        const updated = { ...prev };
+        Object.entries(project.roomPricing!).forEach(([room, data]) => {
+          updated[room] = data.price;
+        });
+        return updated;
+      });
       
-      // Load saved pricing from project if available
-      if (project.roomPricing && Object.keys(project.roomPricing).length > 0) {
-        setRoomPricing({ ...project.roomPricing });
-        
-        // Update roomPrices and roomQuantities from saved pricing
-        setRoomPrices(prev => {
-          const updated = { ...prev };
-          Object.entries(project.roomPricing!).forEach(([room, data]) => {
-            updated[room] = data.price;
-          });
-          return updated;
+      setRoomQuantities(prev => {
+        const updated = { ...prev };
+        Object.entries(project.roomPricing!).forEach(([room, data]) => {
+          updated[room] = data.quantity;
         });
-        
-        setRoomQuantities(prev => {
-          const updated = { ...prev };
-          Object.entries(project.roomPricing!).forEach(([room, data]) => {
-            updated[room] = data.quantity;
-          });
-          return updated;
-        });
-      }
+        return updated;
+      });
+    }
     }
   }, [project.id, project.roomAssignments, project.roomPricing]);
 
@@ -965,11 +965,11 @@ Total: ${formatCurrency(total)}
         </div>
 
         {/* Header */}
-        <div className="mb-8">
-          <div className="flex items-start justify-between mb-4">
-            <div>
-              <h2 className="text-xl font-semibold text-foreground mb-2 leading-snug">{project.clientName}</h2>
-              <div className="flex items-center gap-3">
+        <div className="mb-6 sm:mb-8">
+          <div className="flex flex-col sm:flex-row items-start justify-between gap-4 mb-4">
+            <div className="flex-1 min-w-0">
+              <h2 className="text-lg sm:text-xl font-semibold text-foreground mb-2 leading-snug truncate">{project.clientName}</h2>
+              <div className="flex items-center gap-2 sm:gap-3 flex-wrap">
                 {getStagingStatusBadge()}
                 {(() => {
                   // Calculate days until staging if not yet staged
@@ -1006,23 +1006,25 @@ Total: ${formatCurrency(total)}
                 })()}
               </div>
             </div>
-            <div className="flex items-center gap-3">
+            <div className="flex items-center gap-2 sm:gap-3 flex-wrap w-full sm:w-auto">
               <Button
                 variant="outline"
                 onClick={() => setEditDialogOpen(true)}
-                className="gap-2"
+                className="gap-2 flex-1 sm:flex-initial min-h-[44px] touch-manipulation"
               >
                 <Edit className="w-4 h-4" />
-                Edit
+                <span className="hidden sm:inline">Edit</span>
+                <span className="sm:hidden">Edit</span>
               </Button>
               <Dialog open={invoiceDialogOpen} onOpenChange={setInvoiceDialogOpen}>
                 <DialogTrigger asChild>
                   <Button
                     variant="outline"
-                    className="gap-2"
+                    className="gap-2 flex-1 sm:flex-initial min-h-[44px] touch-manipulation"
                   >
                     <FileText className="w-4 h-4" />
-                    Send Invoice
+                    <span className="hidden sm:inline">Send Invoice</span>
+                    <span className="sm:hidden">Invoice</span>
                   </Button>
                 </DialogTrigger>
                 <DialogContent 
@@ -1131,10 +1133,11 @@ Total: ${formatCurrency(total)}
                 </DialogContent>
               </Dialog>
               <Button
-                className="bg-primary text-primary-foreground hover:bg-primary/90"
+                className="bg-primary text-primary-foreground hover:bg-primary/90 flex-1 sm:flex-initial min-h-[44px] touch-manipulation"
                 onClick={() => onNavigate("library", { selectedProjectId: project.id })}
               >
-                {isUpcoming ? "Add Inventory" : "Manage Inventory"}
+                <span className="hidden sm:inline">{isUpcoming ? "Add Inventory" : "Manage Inventory"}</span>
+                <span className="sm:hidden">{isUpcoming ? "Add" : "Manage"}</span>
               </Button>
             </div>
           </div>
@@ -1174,9 +1177,9 @@ Total: ${formatCurrency(total)}
         </Card>
 
         {/* Key Information Grid */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-6 mb-4 sm:mb-6">
           {/* Client Information */}
-          <Card className="bg-card border-border elevation-sm p-6">
+          <Card className="bg-card border-border elevation-sm p-4 sm:p-6">
             <h4 className="text-base font-medium text-foreground mb-4 leading-normal">Client Information</h4>
             <div className="space-y-3">
               <div>
@@ -1231,10 +1234,10 @@ Total: ${formatCurrency(total)}
         </div>
 
         {/* Rooms to Stage and Project Insights Side by Side */}
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6 mb-4 sm:mb-6">
           {/* Rooms to Stage */}
           <div>
-            <Card className="bg-card border-border elevation-sm p-6 h-full flex flex-col">
+            <Card className="bg-card border-border elevation-sm p-4 sm:p-6 h-full flex flex-col">
               {/* Header */}
               <div className="mb-6 pb-4 border-b border-border">
                 <div>
@@ -1264,7 +1267,7 @@ Total: ${formatCurrency(total)}
                       }}
                       transition={{ duration: 0.15 }}
                       className={cn(
-                        "flex items-center gap-3 sm:gap-4 md:gap-6 px-4 sm:px-6 py-3 rounded-lg transition-all duration-200 cursor-pointer",
+                        "flex items-center gap-2 sm:gap-3 md:gap-4 px-3 sm:px-4 md:px-6 py-2.5 sm:py-3 rounded-lg transition-all duration-200 cursor-pointer touch-manipulation",
                         "hover:bg-muted/60 border-transparent",
                         isSelected && "bg-muted/40 shadow-sm"
                       )}
@@ -1345,7 +1348,7 @@ Total: ${formatCurrency(total)}
                             }
                           }}
                           disabled={quantity <= 0}
-                          className="h-[30px] w-[30px] p-0 shrink-0 rounded-md border-border hover:bg-muted hover:border-foreground/20 disabled:opacity-30 disabled:cursor-not-allowed transition-all flex-shrink-0 flex items-center justify-center"
+                          className="h-[36px] sm:h-[30px] w-[36px] sm:w-[30px] p-0 shrink-0 rounded-md border-border hover:bg-muted hover:border-foreground/20 disabled:opacity-30 disabled:cursor-not-allowed transition-all flex-shrink-0 flex items-center justify-center touch-manipulation"
                           aria-label={`Decrease ${room} quantity`}
                         >
                           <Minus className="w-4 h-4 flex-shrink-0" strokeWidth={2.5} />
@@ -1364,7 +1367,7 @@ Total: ${formatCurrency(total)}
                             }
                           }}
                           onClick={(e) => e.stopPropagation()}
-                          className="w-24 h-[30px] text-center text-sm border-border bg-background focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-0 flex-shrink-0 px-2 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+                          className="w-20 sm:w-24 h-[36px] sm:h-[30px] text-center text-base sm:text-sm border-border bg-background focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-0 flex-shrink-0 px-2 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
                           aria-label={`${room} quantity`}
                         />
                         <Button
@@ -1377,7 +1380,7 @@ Total: ${formatCurrency(total)}
                               setSelectedRooms([...selectedRooms, room]);
                             }
                           }}
-                          className="h-[30px] w-[30px] p-0 shrink-0 rounded-md border-border hover:bg-muted hover:border-foreground/20 transition-all flex-shrink-0 flex items-center justify-center"
+                          className="h-[36px] sm:h-[30px] w-[36px] sm:w-[30px] p-0 shrink-0 rounded-md border-border hover:bg-muted hover:border-foreground/20 transition-all flex-shrink-0 flex items-center justify-center touch-manipulation"
                           aria-label={`Increase ${room} quantity`}
                         >
                           <Plus className="w-4 h-4 flex-shrink-0" strokeWidth={2.5} />
@@ -1397,7 +1400,7 @@ Total: ${formatCurrency(total)}
                             setRoomPrices(prev => ({ ...prev, [room]: Math.max(0, price) }));
                           }}
                           placeholder="0.00"
-                          className="w-24 h-8 text-right text-sm border-border bg-background focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-0 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+                          className="w-20 sm:w-24 h-[36px] sm:h-8 text-right text-base sm:text-sm border-border bg-background focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-0 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
                           aria-label={`${room} price`}
                         />
                       </div>
@@ -1559,11 +1562,11 @@ Total: ${formatCurrency(total)}
 
 
         {/* Items List */}
-        <Card className="bg-card border-border elevation-sm p-6">
-          <h4 className="text-foreground mb-6">
+        <Card className="bg-card border-border elevation-sm p-4 sm:p-6">
+          <h4 className="text-foreground mb-4 sm:mb-6 text-base sm:text-lg">
             {isStaged ? "Staged Items" : "Assigned Items"} ({projectItems.length})
           </h4>
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4">
             {projectItems.map((item) => (
               <motion.div
                 key={item.id}
