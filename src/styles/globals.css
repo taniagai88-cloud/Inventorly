@@ -1059,3 +1059,21 @@ p, span, div, h1, h2, h3, h4, h5, h6 {
     max-width: none !important;
   }
 }
+
+/* Grid Dashboard Layout Fixes */
+.react-grid-layout {
+  width: 100% !important;
+  min-height: 400px;
+}
+
+.layout .react-grid-item {
+  overflow: visible;
+  min-height: 100px;
+}
+
+.react-grid-item {
+  box-sizing: border-box;
+  position: absolute !important;
+  visibility: visible !important;
+  opacity: 1 !important;
+}

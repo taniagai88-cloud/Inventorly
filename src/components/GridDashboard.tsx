@@ -131,6 +131,11 @@ export function GridDashboard({ onNavigate, jobAssignments }: DashboardProps) {
       setWindowWidth(window.innerWidth);
     };
     
+    // Set initial width
+    if (typeof window !== 'undefined') {
+      setWindowWidth(window.innerWidth);
+    }
+    
     window.addEventListener('resize', handleResize);
     return () => window.removeEventListener('resize', handleResize);
   }, []);
@@ -142,6 +147,7 @@ export function GridDashboard({ onNavigate, jobAssignments }: DashboardProps) {
   const [visibleSections, setVisibleSections] = useState<DashboardSections>(DEFAULT_SECTIONS);
   const [layouts, setLayouts] = useState(DEFAULT_LAYOUTS);
   const [isEditMode, setIsEditMode] = useState(false);
+  const [isInitialized, setIsInitialized] = useState(false);
 
   // Load saved preferences
   useEffect(() => {
@@ -153,11 +159,26 @@ export function GridDashboard({ onNavigate, jobAssignments }: DashboardProps) {
         const merged = { ...DEFAULT_SECTIONS, ...parsed };
         // Ensure quickActions is always visible
         merged.quickActions = true;
-        setVisibleSections(merged);
+        // Ensure at least some sections are visible
+        const hasAnyVisible = Object.values(merged).some(v => v);
+        if (!hasAnyVisible) {
+          // If all sections are hidden, reset to defaults
+          setVisibleSections(DEFAULT_SECTIONS);
+          localStorage.setItem("dashboardSections", JSON.stringify(DEFAULT_SECTIONS));
+        } else {
+          setVisibleSections(merged);
+        }
       } catch (e) {
         console.error("Failed to load dashboard preferences", e);
+        // Reset to defaults on error
+        setVisibleSections(DEFAULT_SECTIONS);
+        localStorage.setItem("dashboardSections", JSON.stringify(DEFAULT_SECTIONS));
       }
+    } else {
+      // No saved preferences, use defaults
+      setVisibleSections(DEFAULT_SECTIONS);
     }
+    setIsInitialized(true);
 
     const savedLayouts = localStorage.getItem("dashboardLayouts");
     if (savedLayouts) {
@@ -333,6 +354,17 @@ export function GridDashboard({ onNavigate, jobAssignments }: DashboardProps) {
     xxs: layouts.xxs?.filter(l => visibleSections[l.i as keyof DashboardSections]) || [],
   };
 
+  // Don't render until initialized to avoid flash of empty state
+  if (!isInitialized) {
+    return (
+      <div className="w-full max-w-[1920px] mx-auto px-3 sm:px-4 md:px-6 lg:px-8 xl:px-10 2xl:px-12 py-3 sm:py-4 md:py-6 lg:py-8 overflow-x-hidden">
+        <div className="flex items-center justify-center min-h-[400px]">
+          <div className="text-muted-foreground">Loading dashboard...</div>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="w-full max-w-[1920px] mx-auto px-3 sm:px-4 md:px-6 lg:px-8 xl:px-10 2xl:px-12 py-3 sm:py-4 md:py-6 lg:py-8 overflow-x-hidden">
       {/* Header */}
@@ -488,35 +520,41 @@ export function GridDashboard({ onNavigate, jobAssignments }: DashboardProps) {
           </Button>
         </Card>
       ) : (
-        <ResponsiveGridLayout
-          className="layout"
-          layouts={visibleLayouts}
-          breakpoints={{ 
-            lg: 1920,   // 1920px+
-            md: 1280,   // 1280px-1919px
-            sm: 768,    // 768px-1279px
-            xs: 414,    // 414px-767px
-            xxs: 320    // 320px-413px
-          }}
-          cols={{ 
-            lg: 12,     // 1920px+
-            md: 10,     // 1280px-1919px
-            sm: 6,      // 768px-1279px
-            xs: 4,      // 414px-767px
-            xxs: 2      // 320px-413px
-          }}
-          rowHeight={windowWidth < 414 ? 45 : windowWidth < 768 ? 50 : 60}
-          isDraggable={isEditMode}
-          isResizable={isEditMode}
-          onLayoutChange={handleLayoutChange}
-          draggableHandle=".drag-handle"
-          compactType="vertical"
-          preventCollision={false}
-          margin={[
-            windowWidth < 414 ? 6 : windowWidth < 768 ? 8 : windowWidth < 1024 ? 12 : 16,
-            windowWidth < 414 ? 6 : windowWidth < 768 ? 8 : windowWidth < 1024 ? 12 : 16
-          ]}
-        >
+        <div className="w-full">
+          <ResponsiveGridLayout
+            className="layout"
+            layouts={visibleLayouts}
+            useCSSTransforms={false}
+            measureBeforeMount={false}
+            breakpoints={{ 
+              lg: 1920,   // 1920px+
+              md: 1280,   // 1280px-1919px
+              sm: 768,    // 768px-1279px
+              xs: 414,    // 414px-767px
+              xxs: 320    // 320px-413px
+            }}
+            cols={{ 
+              lg: 12,     // 1920px+
+              md: 10,     // 1280px-1919px
+              sm: 6,      // 768px-1279px
+              xs: 4,      // 414px-767px
+              xxs: 2      // 320px-413px
+            }}
+            rowHeight={windowWidth < 414 ? 50 : windowWidth < 768 ? 55 : 60}
+            isDraggable={isEditMode}
+            isResizable={isEditMode}
+            onLayoutChange={handleLayoutChange}
+            draggableHandle=".drag-handle"
+            compactType="vertical"
+            preventCollision={false}
+            margin={{
+              lg: [16, 16],   // 1920px+
+              md: [12, 12],   // 1280px-1919px
+              sm: [8, 8],     // 768px-1279px
+              xs: [6, 6],     // 414px-767px
+              xxs: [6, 6]     // 320px-413px
+            }}
+          >
           {visibleSections.kpis && (
             <div key="kpis">
               <Card className={`bg-card border-border elevation-sm h-full p-4 sm:p-6 ${isEditMode ? 'cursor-move' : ''}`}>
@@ -800,7 +838,8 @@ export function GridDashboard({ onNavigate, jobAssignments }: DashboardProps) {
               </Card>
             </div>
           )}
-        </ResponsiveGridLayout>
+          </ResponsiveGridLayout>
+        </div>
       )}
     </div>
   );
