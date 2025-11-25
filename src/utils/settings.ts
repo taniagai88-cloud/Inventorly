@@ -79,6 +79,10 @@ export function getRoomPricing(size: "small" | "medium" | "large" = "medium"): R
     "Living Room": settings.livingRoomPrice,
     "Dining Room": settings.diningRoomPrice,
     "Bedroom": settings[`bedroomPrice${sizeSuffix}` as keyof SettingsData] as number,
+    "Bedroom (S)": settings.bedroomPriceSmall,
+    "Bedroom (M)": settings.bedroomPriceMedium,
+    "Bedroom (L)": settings.bedroomPriceLarge,
+    // Legacy support for old room names
     "Bedroom (Small)": settings.bedroomPriceSmall,
     "Bedroom (Medium)": settings.bedroomPriceMedium,
     "Bedroom (Large)": settings.bedroomPriceLarge,

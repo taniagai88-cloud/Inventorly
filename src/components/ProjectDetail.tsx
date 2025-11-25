@@ -1,6 +1,6 @@
-import React, { useState, useRef, useEffect } from "react";
+import React, { useState, useRef, useEffect, useCallback } from "react";
 import { motion } from "motion/react";
-import { ArrowLeft, MapPin, Calendar, Clock, Package, TrendingUp, DollarSign, AlertCircle, CheckCircle, FileText, Mail, Plus, Minus } from "lucide-react";
+import { ArrowLeft, MapPin, Calendar, Clock, Package, TrendingUp, DollarSign, AlertCircle, CheckCircle, FileText, Mail, Plus, Minus, Edit } from "lucide-react";
 import { Card } from "./ui/card";
 import { Badge } from "./ui/badge";
 import { Button } from "./ui/button";
@@ -8,13 +8,17 @@ import { Progress } from "./ui/progress";
 import { ImageWithFallback } from "./figma/ImageWithFallback";
 import { format, differenceInDays } from "date-fns";
 import { toast } from "sonner@2.0.3";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "./ui/dialog";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogDescription } from "./ui/dialog";
 import { Input } from "./ui/input";
 import { Label } from "./ui/label";
+import { Textarea } from "./ui/textarea";
 import { Checkbox } from "./ui/checkbox";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "./ui/select";
+import { Popover, PopoverContent, PopoverTrigger } from "./ui/popover";
+import { Calendar as CalendarComponent } from "./ui/calendar";
+import { cn } from "./ui/utils";
 import type { AppState, JobAssignment, InventoryItem } from "../types";
-import { getProjectItemIds, isProjectStaged } from "../utils/projectUtils";
+import { getProjectItemIds, isProjectStaged, isStagingUpcoming } from "../utils/projectUtils";
 import { getRoomPricing, getSetting } from "../utils/settings";
 
 interface ProjectDetailProps {
@@ -26,7 +30,7 @@ interface ProjectDetailProps {
 
 // Default rooms for staging projects - defined outside component to avoid re-creation
 // Bedrooms are split into three sizes
-const defaultRooms = ["Living Room", "Dining Room", "Bathroom", "Bedroom (Small)", "Bedroom (Medium)", "Bedroom (Large)", "Kitchen", "Office", "Other"];
+const defaultRooms = ["Living Room", "Dining Room", "Bathroom", "Bedroom (S)", "Bedroom (M)", "Bedroom (L)", "Kitchen", "Office", "Other"];
 
 // Base pricing for default rooms - defined outside component to avoid re-creation
 const baseRoomPricing: Record<string, number> = {
@@ -49,9 +53,18 @@ const formatCurrency = (amount: number): string => {
   }).format(amount);
 };
 
+// Note: calculateTotalContractAmount is now replaced by calculateProjectTotal() 
+// which matches the invoice calculation (includes fees and tax)
+
 export function ProjectDetail({ project, items, onNavigate, onUpdateJob }: ProjectDetailProps) {
   // Real-time date state that updates every minute
   const [currentDate, setCurrentDate] = useState(new Date());
+  
+  // Edit dialog state
+  const [editDialogOpen, setEditDialogOpen] = useState(false);
+  const [editedProject, setEditedProject] = useState<JobAssignment>(project);
+  const [editStagingDateOption, setEditStagingDateOption] = useState<"date" | "tbd">(project.stagingDate ? "date" : "tbd");
+  const [isSaving, setIsSaving] = useState(false);
   
   // Update current date every minute for real-time calculations
   useEffect(() => {
@@ -61,11 +74,39 @@ export function ProjectDetail({ project, items, onNavigate, onUpdateJob }: Proje
     
     return () => clearInterval(interval);
   }, []);
+
+  // Update editedProject when project prop changes
+  useEffect(() => {
+    setEditedProject(project);
+    setEditStagingDateOption(project.stagingDate ? "date" : "tbd");
+  }, [project]);
   
-  // Get items assigned to this project (only if staging date has passed)
-  const projectItemIds = getProjectItemIds(project);
+  // Get items assigned to this project (show all assigned items regardless of staging status)
+  const projectItemIds = project.itemIds || [];
   const projectItems = items.filter(item => projectItemIds.includes(item.id));
   const isStaged = isProjectStaged(project);
+  const isUpcoming = isStagingUpcoming(project.stagingDate);
+  
+  // Calculate inventory value - sum of purchase cost of all assigned items
+  const calculateInventoryValue = (): number => {
+    if (projectItemIds.length === 0) {
+      return 0;
+    }
+    
+    // Count how many times each item appears in project.itemIds (quantity)
+    const itemCounts: Record<string, number> = {};
+    projectItemIds.forEach(itemId => {
+      itemCounts[itemId] = (itemCounts[itemId] || 0) + 1;
+    });
+    
+    // Sum up purchase cost * quantity for each assigned item
+    return projectItems.reduce((total, item) => {
+      const quantity = itemCounts[item.id] || 0;
+      return total + (item.purchaseCost * quantity);
+    }, 0);
+  };
+  
+  const inventoryValue = calculateInventoryValue();
   
   // Calculate days remaining (contract duration from settings) using real-time date
   const today = currentDate;
@@ -76,11 +117,59 @@ export function ProjectDetail({ project, items, onNavigate, onUpdateJob }: Proje
   const daysElapsed = totalDays - daysRemaining;
   const progressPercentage = Math.min(Math.max((daysElapsed / totalDays) * 100, 0), 100);
 
-  // Calculate total value
-  const totalValue = projectItems.reduce((sum, item) => {
-    const quantity = project.itemIds?.filter(id => id === item.id).length || 1;
-    return sum + (item.purchaseCost * quantity);
-  }, 0);
+  // Calculate total value (matching invoice calculation exactly)
+  const calculateProjectTotal = (): number => {
+    if (!project.roomPricing || Object.keys(project.roomPricing).length === 0) {
+      return 0;
+    }
+    
+    // Calculate subtotal from room pricing - only include rooms with quantity > 0 and price > 0 (same as invoice)
+    const subtotal = Object.values(project.roomPricing).reduce((sum, room) => {
+      // Only include rooms that have quantity > 0 and price > 0 (matching invoice filter)
+      if ((room.quantity || 0) > 0 && (room.price || 0) > 0) {
+        return sum + (room.price || 0) * (room.quantity || 0);
+      }
+      return sum;
+    }, 0);
+    
+    // Get delivery and pickup fees from settings
+    const deliveryFee = getSetting("deliveryFee");
+    const pickupFee = getSetting("pickupFee");
+    const feesSubtotal = subtotal + deliveryFee + pickupFee;
+    
+    // Get tax rate based on location (same logic as invoice)
+    const getTaxRateByLocation = (location: string): number => {
+      const locationLower = location.toLowerCase();
+      
+      if (locationLower.includes('california') || locationLower.includes('ca') || locationLower.includes('los angeles') || locationLower.includes('san francisco') || locationLower.includes('san diego')) {
+        return 0.1025;
+      }
+      if (locationLower.includes('new york') || locationLower.includes('ny') || locationLower.includes('nyc') || locationLower.includes('manhattan')) {
+        return 0.08875;
+      }
+      if (locationLower.includes('texas') || locationLower.includes('tx') || locationLower.includes('houston') || locationLower.includes('dallas') || locationLower.includes('austin')) {
+        return 0.0825;
+      }
+      if (locationLower.includes('florida') || locationLower.includes('fl') || locationLower.includes('miami') || locationLower.includes('orlando')) {
+        return 0.075;
+      }
+      if (locationLower.includes('illinois') || locationLower.includes('il') || locationLower.includes('chicago')) {
+        return 0.1025;
+      }
+      if (locationLower.includes('washington') || locationLower.includes('wa') || locationLower.includes('seattle')) {
+        return 0.101;
+      }
+      return 0.1; // Default 10%
+    };
+    
+    const taxRate = getTaxRateByLocation(project.fullAddress || project.jobLocation || '');
+    const tax = feesSubtotal * taxRate;
+    const total = feesSubtotal + tax;
+    
+    return total;
+  };
+  
+  const projectTotal = calculateProjectTotal();
 
   // Get staging status badge
   const getStagingStatusBadge = () => {
@@ -124,13 +213,13 @@ export function ProjectDetail({ project, items, onNavigate, onUpdateJob }: Proje
   };
 
   // Helper function to get bedroom size from room name
-  const getBedroomSize = (room: string): "small" | "medium" | "large" | null => {
-    if (room === "Bedroom (Small)") return "small";
-    if (room === "Bedroom (Medium)") return "medium";
-    if (room === "Bedroom (Large)") return "large";
+  const getBedroomSize = useCallback((room: string): "small" | "medium" | "large" | null => {
+    if (room === "Bedroom (S)" || room === "Bedroom (Small)") return "small";
+    if (room === "Bedroom (M)" || room === "Bedroom (Medium)") return "medium";
+    if (room === "Bedroom (L)" || room === "Bedroom (Large)") return "large";
     if (room === "Bedroom") return "medium"; // Legacy support
     return null;
-  };
+  }, []);
   
   // Room quantities state - track quantity for each room
   // Initialize with saved quantities from project if available
@@ -183,6 +272,163 @@ export function ProjectDetail({ project, items, onNavigate, onUpdateJob }: Proje
     }
     return initial;
   });
+
+  // Auto-save functionality - save changes automatically after user stops editing
+  const saveTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  
+  // Track saved state to detect changes
+  const getSavedRoomsState = useCallback(() => {
+    const savedRooms = project.roomAssignments ? Object.keys(project.roomAssignments) : [];
+    const savedQuantities: Record<string, number> = {};
+    const savedPrices: Record<string, number> = {};
+    
+    if (project.roomPricing) {
+      Object.entries(project.roomPricing).forEach(([room, data]) => {
+        savedQuantities[room] = data.quantity;
+        savedPrices[room] = data.price;
+      });
+    }
+    
+    return {
+      rooms: savedRooms,
+      quantities: savedQuantities,
+      prices: savedPrices,
+      customRooms: savedRooms.filter(room => !defaultRooms.includes(room))
+    };
+  }, [project.roomAssignments, project.roomPricing]);
+
+  // Check if there are unsaved changes
+  const hasUnsavedChanges = useCallback(() => {
+    const savedState = getSavedRoomsState();
+    
+    // Get current rooms with quantity > 0
+    const currentRooms = selectedRooms.filter(room => (roomQuantities[room] || 0) > 0);
+    const savedRooms = savedState.rooms.filter(room => (savedState.quantities[room] || 0) > 0);
+    
+    // If no rooms are saved yet, enable button if any rooms are selected
+    if (savedRooms.length === 0) {
+      return currentRooms.length > 0; // Enable if rooms are selected, disable if none selected
+    }
+    
+    // Check if rooms changed (added or removed)
+    if (currentRooms.length !== savedRooms.length) return true;
+    
+    // Check if room sets match
+    const currentRoomsSet = new Set(currentRooms);
+    const savedRoomsSet = new Set(savedRooms);
+    
+    if (currentRoomsSet.size !== savedRoomsSet.size) return true;
+    for (const room of currentRooms) {
+      if (!savedRoomsSet.has(room)) return true;
+    }
+    for (const room of savedRooms) {
+      if (!currentRoomsSet.has(room)) return true;
+    }
+    
+    // Check if quantities changed
+    for (const room of currentRooms) {
+      const currentQty = roomQuantities[room] || 0;
+      const savedQty = savedState.quantities[room] || 0;
+      if (currentQty !== savedQty) return true;
+    }
+    
+    // Check if prices changed
+    for (const room of currentRooms) {
+      const currentPrice = roomPrices[room] || 0;
+      const savedPrice = savedState.prices[room] || 0;
+      if (Math.abs(currentPrice - savedPrice) > 0.01) return true; // Allow for floating point precision
+    }
+    
+    // Check if custom rooms changed
+    const currentCustomRooms = [...customRooms].sort();
+    const savedCustomRooms = [...savedState.customRooms].sort();
+    if (currentCustomRooms.length !== savedCustomRooms.length) return true;
+    if (currentCustomRooms.length > 0 && !currentCustomRooms.every(room => savedCustomRooms.includes(room))) return true;
+    if (savedCustomRooms.length > 0 && !savedCustomRooms.every(room => currentCustomRooms.includes(room))) return true;
+    
+    return false;
+  }, [selectedRooms, roomQuantities, roomPrices, customRooms, getSavedRoomsState]);
+  
+  const saveProjectChanges = useCallback(() => {
+    if (!onUpdateJob) return;
+    
+    // Create room assignments object - only include selected rooms with quantity > 0
+    const roomAssignments: Record<string, string[]> = {};
+    selectedRooms.forEach(room => {
+      const qty = roomQuantities[room] || 0;
+      if (qty > 0) {
+        // Preserve existing item assignments for this room, or initialize empty array
+        roomAssignments[room] = project.roomAssignments?.[room] || [];
+      }
+    });
+
+    // Store pricing data for invoice use (including size) - only for selected rooms with quantity > 0
+    const pricingData: Record<string, { price: number; quantity: number; size?: "small" | "medium" | "large" }> = {};
+    selectedRooms.forEach(room => {
+      const qty = roomQuantities[room] || 0;
+      if (qty > 0) {
+        const bedroomSize = getBedroomSize(room);
+        pricingData[room] = {
+          price: roomPrices[room] || 0,
+          quantity: qty,
+          size: bedroomSize || undefined,
+        };
+      }
+    });
+    
+    // Update the roomPricing state used for invoices
+    setRoomPricing(pricingData);
+
+    // Update project with all changes: room assignments, pricing data, and preserve other project data
+    // Mark project as staged when rooms are saved (if rooms with quantity > 0 exist)
+    const hasRooms = Object.keys(pricingData).length > 0;
+    const updatedProject: JobAssignment = {
+      ...project,
+      roomAssignments: Object.keys(roomAssignments).length > 0 ? roomAssignments : undefined,
+      roomPricing: hasRooms ? pricingData : undefined,
+      stagingStatus: hasRooms ? "staged" : project.stagingStatus,
+      // Set staging date to today if not already set and rooms are being saved
+      stagingDate: hasRooms && !project.stagingDate ? currentDate : project.stagingDate,
+    };
+    
+    onUpdateJob(updatedProject);
+  }, [onUpdateJob, project, selectedRooms, roomQuantities, roomPrices, allRooms, getBedroomSize, currentDate]);
+
+  
+  // Auto-save when room selections, quantities, or prices change (debounced)
+  useEffect(() => {
+    if (!onUpdateJob) return;
+    
+    // Clear existing timeout
+    if (saveTimeoutRef.current) {
+      clearTimeout(saveTimeoutRef.current);
+    }
+    
+    // Set new timeout to save after 1 second of inactivity
+    saveTimeoutRef.current = setTimeout(() => {
+      saveProjectChanges();
+    }, 1000);
+    
+    // Cleanup on unmount
+    return () => {
+      if (saveTimeoutRef.current) {
+        clearTimeout(saveTimeoutRef.current);
+      }
+    };
+  }, [selectedRooms, roomQuantities, roomPrices, saveProjectChanges, onUpdateJob]);
+
+  // Save on unmount to ensure no changes are lost
+  useEffect(() => {
+    return () => {
+      if (saveTimeoutRef.current) {
+        clearTimeout(saveTimeoutRef.current);
+      }
+      // Save immediately on unmount if there are changes
+      if (onUpdateJob && (selectedRooms.length > 0 || Object.keys(roomQuantities).length > 0 || Object.keys(roomPrices).length > 0)) {
+        saveProjectChanges();
+      }
+    };
+  }, [onUpdateJob, saveProjectChanges, selectedRooms, roomQuantities, roomPrices]);
   
   // Function to add a new custom room
   const handleAddCustomRoom = () => {
@@ -225,37 +471,45 @@ export function ProjectDetail({ project, items, onNavigate, onUpdateJob }: Proje
     toast.success(`Removed "${room}" room`);
   };
   
-  // Sync selected rooms and pricing when project changes
+  // Sync selected rooms and pricing when project ID changes (initial load or project switch)
+  // Use a ref to track the last synced project ID to avoid overwriting user selections
+  const lastSyncedProjectIdRef = useRef<string | null>(null);
+  
   useEffect(() => {
-    const rooms = project.roomAssignments ? Object.keys(project.roomAssignments) : [];
-    setSelectedRooms(rooms);
-    
-    // Update custom rooms from project
-    const projectCustomRooms = rooms.filter(room => !defaultRooms.includes(room));
-    setCustomRooms(projectCustomRooms);
-    
-    // Load saved pricing from project if available
-    if (project.roomPricing && Object.keys(project.roomPricing).length > 0) {
-      setRoomPricing({ ...project.roomPricing });
+    // Only sync if this is a different project (project ID changed)
+    if (lastSyncedProjectIdRef.current !== project.id) {
+      lastSyncedProjectIdRef.current = project.id;
       
-      // Update roomPrices and roomQuantities from saved pricing
-      setRoomPrices(prev => {
-        const updated = { ...prev };
-        Object.entries(project.roomPricing!).forEach(([room, data]) => {
-          updated[room] = data.price;
-        });
-        return updated;
-      });
+      const rooms = project.roomAssignments ? Object.keys(project.roomAssignments) : [];
+      setSelectedRooms(rooms);
       
-      setRoomQuantities(prev => {
-        const updated = { ...prev };
-        Object.entries(project.roomPricing!).forEach(([room, data]) => {
-          updated[room] = data.quantity;
+      // Update custom rooms from project
+      const projectCustomRooms = rooms.filter(room => !defaultRooms.includes(room));
+      setCustomRooms(projectCustomRooms);
+      
+      // Load saved pricing from project if available
+      if (project.roomPricing && Object.keys(project.roomPricing).length > 0) {
+        setRoomPricing({ ...project.roomPricing });
+        
+        // Update roomPrices and roomQuantities from saved pricing
+        setRoomPrices(prev => {
+          const updated = { ...prev };
+          Object.entries(project.roomPricing!).forEach(([room, data]) => {
+            updated[room] = data.price;
+          });
+          return updated;
         });
-        return updated;
-      });
+        
+        setRoomQuantities(prev => {
+          const updated = { ...prev };
+          Object.entries(project.roomPricing!).forEach(([room, data]) => {
+            updated[room] = data.quantity;
+          });
+          return updated;
+        });
+      }
     }
-  }, [project.roomAssignments, project.roomPricing]);
+  }, [project.id, project.roomAssignments, project.roomPricing]);
 
   // Update quantities when rooms change
   useEffect(() => {
@@ -368,6 +622,7 @@ export function ProjectDetail({ project, items, onNavigate, onUpdateJob }: Proje
     });
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [selectedRooms, customRooms]);
+
 
   const [invoiceDialogOpen, setInvoiceDialogOpen] = useState(false);
   const invoiceContentRef = useRef<HTMLDivElement>(null);
@@ -651,7 +906,7 @@ ${project.clientName || "Client"}
 ${project.fullAddress || project.jobLocation}
 
 PROJECT:
-${project.jobName}
+${project.clientName || project.shortAddress || project.jobLocation}
 
 ITEMS:
 
@@ -670,7 +925,8 @@ Total: ${formatCurrency(total)}
     const url = URL.createObjectURL(blob);
     const link = document.createElement('a');
     link.href = url;
-    link.download = `Invoice-${project.jobName.replace(/\s+/g, '-')}-${format(currentDate, "yyyy-MM-dd")}.txt`;
+    const projectName = project.clientName || project.shortAddress || project.jobLocation || "Project";
+    link.download = `Invoice-${projectName.replace(/\s+/g, '-')}-${format(currentDate, "yyyy-MM-dd")}.txt`;
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
@@ -680,8 +936,12 @@ Total: ${formatCurrency(total)}
   };
 
   const handleEmailInvoice = () => {
+    if (!project.clientEmail) {
+      toast.error("No email address available. Please add a client email to send invoices.");
+      return;
+    }
     // In production, this would integrate with an email service
-    toast.success("Invoice email sent successfully!", {
+    toast.success(`Invoice email sent successfully to ${project.clientEmail}!`, {
       duration: 3000,
     });
   };
@@ -696,7 +956,7 @@ Total: ${formatCurrency(total)}
         <div className="mb-4">
           <Button
             variant="ghost"
-            onClick={() => onNavigate("allProjects")}
+            onClick={() => onNavigate("dashboard")}
             className="gap-2"
           >
             <ArrowLeft className="w-4 h-4" />
@@ -708,7 +968,7 @@ Total: ${formatCurrency(total)}
         <div className="mb-8">
           <div className="flex items-start justify-between mb-4">
             <div>
-              <h2 className="text-foreground mb-2">{project.clientName}</h2>
+              <h2 className="text-xl font-semibold text-foreground mb-2 leading-snug">{project.clientName}</h2>
               <div className="flex items-center gap-3">
                 {getStagingStatusBadge()}
                 {(() => {
@@ -747,6 +1007,14 @@ Total: ${formatCurrency(total)}
               </div>
             </div>
             <div className="flex items-center gap-3">
+              <Button
+                variant="outline"
+                onClick={() => setEditDialogOpen(true)}
+                className="gap-2"
+              >
+                <Edit className="w-4 h-4" />
+                Edit
+              </Button>
               <Dialog open={invoiceDialogOpen} onOpenChange={setInvoiceDialogOpen}>
                 <DialogTrigger asChild>
                   <Button
@@ -768,51 +1036,44 @@ Total: ${formatCurrency(total)}
                     {/* Invoice Header */}
                     <div className="invoice-header">
                       <div>
-                        <h3 className="text-foreground font-semibold mb-2 text-lg">Invoice #{`INV-${project.id.slice(0, 8).toUpperCase()}-${format(currentDate, "yyyyMMdd")}`}</h3>
-                        <p className="text-muted-foreground text-sm">Date: {format(currentDate, "MMMM d, yyyy")}</p>
+                        <h3 className="text-lg font-semibold text-foreground mb-2 leading-snug">Invoice #{`INV-${project.id.slice(0, 8).toUpperCase()}-${format(currentDate, "yyyyMMdd")}`}</h3>
+                        <p className="text-sm font-normal text-muted-foreground leading-relaxed">Date: {format(currentDate, "MMMM d, yyyy")}</p>
                         <div className="mt-4">
-                          <h4 className="text-foreground font-medium mb-2 text-sm">Bill To:</h4>
-                          <p className="text-muted-foreground text-sm">{project.clientName || "Client"}</p>
-                          <p className="text-muted-foreground text-sm">{project.fullAddress || project.jobLocation}</p>
+                          <h4 className="text-base font-medium text-foreground mb-2 leading-normal">Bill To:</h4>
+                          <p className="text-sm font-normal text-muted-foreground leading-relaxed">{project.clientName || "Client"}</p>
+                          <p className="text-sm font-normal text-muted-foreground leading-relaxed">{project.fullAddress || project.jobLocation}</p>
                         </div>
-                      </div>
-                      <div className="text-right">
-                        <p className="text-foreground font-semibold text-base mb-4">{project.jobName}</p>
                       </div>
                     </div>
 
                     {/* Invoice Summary Table */}
-                    <table className="invoice-table">
-                      <thead>
-                        <tr>
-                          <th>QTY</th>
-                          <th>DESCRIPTION</th>
-                          <th>UNIT PRICE</th>
-                          <th>AMOUNT</th>
-                        </tr>
-                      </thead>
-                      <tbody>
-                        {allRooms.filter(room => selectedRooms.includes(room)).map((room) => {
-                          const roomData = roomPricing[room] || { price: 0, quantity: 0, size: undefined };
-                          const lineTotal = (roomData.price || 0) * (roomData.quantity || 0);
-                          // Room name already includes size for bedroom variants, so no need for additional label
+                    <div className="overflow-x-auto mt-6">
+                      <table className="invoice-table w-full border-collapse">
+                        <thead>
+                          <tr className="border-b-2 border-border">
+                            <th className="px-6 py-3 text-left text-xs font-semibold text-muted-foreground uppercase tracking-wider">QTY</th>
+                            <th className="px-6 py-3 text-left text-xs font-semibold text-muted-foreground uppercase tracking-wider">DESCRIPTION</th>
+                            <th className="px-6 py-3 text-right text-xs font-semibold text-muted-foreground uppercase tracking-wider">UNIT PRICE</th>
+                            <th className="px-6 py-3 text-right text-xs font-semibold text-muted-foreground uppercase tracking-wider">AMOUNT</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {allRooms.filter(room => selectedRooms.includes(room)).map((room) => {
+                            const roomData = roomPricing[room] || { price: 0, quantity: 0, size: undefined };
+                            const lineTotal = (roomData.price || 0) * (roomData.quantity || 0);
+                            // Room name already includes size for bedroom variants, so no need for additional label
 
-                          return (
-                            <tr key={room}>
-                              <td data-label="QTY">{roomData.quantity || 0}</td>
-                              <td data-label="DESCRIPTION">{room}</td>
-                              <td data-label="UNIT PRICE">{formatCurrency(roomData.price || 0)}</td>
-                              <td data-label="AMOUNT">{formatCurrency(lineTotal)}</td>
-                            </tr>
-                          );
-                        })}
-                      </tbody>
-                    </table>
-
-                    {/* Total Amount Display */}
-                    <div className="invoice-total">
-                      <div className="label">Total Amount</div>
-                      <div className="amount">{formatCurrency(total)}</div>
+                            return (
+                              <tr key={room} className="border-b border-border/50">
+                                <td data-label="QTY" className="px-6 py-3 text-center text-sm text-foreground font-normal">{roomData.quantity || 0}</td>
+                                <td data-label="DESCRIPTION" className="px-6 py-3 text-left text-sm text-foreground font-normal">{room}</td>
+                                <td data-label="UNIT PRICE" className="px-6 py-3 text-right text-sm text-foreground font-normal tabular-nums">{formatCurrency(roomData.price || 0)}</td>
+                                <td data-label="AMOUNT" className="px-6 py-3 text-right text-sm text-foreground font-normal tabular-nums">{formatCurrency(lineTotal)}</td>
+                              </tr>
+                            );
+                          })}
+                        </tbody>
+                      </table>
                     </div>
 
                     {/* Totals */}
@@ -858,7 +1119,9 @@ Total: ${formatCurrency(total)}
                           handleEmailInvoice();
                           setInvoiceDialogOpen(false);
                         }}
+                        disabled={!project.clientEmail}
                         className="gap-2"
+                        title={!project.clientEmail ? "No email address available" : ""}
                       >
                         <Mail className="w-4 h-4" />
                         Send Email
@@ -871,7 +1134,7 @@ Total: ${formatCurrency(total)}
                 className="bg-primary text-primary-foreground hover:bg-primary/90"
                 onClick={() => onNavigate("library", { selectedProjectId: project.id })}
               >
-                Manage Inventory
+                {isUpcoming ? "Add Inventory" : "Manage Inventory"}
               </Button>
             </div>
           </div>
@@ -881,22 +1144,32 @@ Total: ${formatCurrency(total)}
         <Card className="bg-card border-border elevation-sm p-6 mb-6">
           <div className="space-y-4">
             <div className="flex items-center justify-between">
-              <h4 className="text-foreground">Contract Timeline</h4>
-              <span className="text-muted-foreground">
+              <h4 className="text-base font-medium text-foreground leading-normal">Contract Timeline</h4>
+              <span className="text-sm font-normal text-muted-foreground leading-relaxed">
                 {Math.max(0, daysElapsed)} of {totalDays} days elapsed
               </span>
             </div>
             <Progress value={progressPercentage} className="h-2" />
             <div className="flex items-center justify-between">
               <div>
-                <label className="text-muted-foreground">Start Date</label>
-                <p className="text-foreground">{format(project.startDate, "MMM d, yyyy")}</p>
+                <label className="text-xs font-medium text-muted-foreground leading-normal">Start Date</label>
+                <p className="text-sm font-normal text-foreground leading-relaxed">{format(project.startDate, "MMM d, yyyy")}</p>
               </div>
               <div className="text-right">
-                <label className="text-muted-foreground">End Date</label>
-                <p className="text-foreground">{format(project.endDate, "MMM d, yyyy")}</p>
+                <label className="text-xs font-medium text-muted-foreground leading-normal">End Date</label>
+                <p className="text-sm font-normal text-foreground leading-relaxed">{format(project.endDate, "MMM d, yyyy")}</p>
               </div>
             </div>
+            {project.roomPricing && Object.keys(project.roomPricing).length > 0 && (
+              <div className="pt-4 border-t border-border">
+                <div className="flex items-center justify-between">
+                  <label className="text-xs font-medium text-muted-foreground leading-normal">Total Contract Amount</label>
+                  <p className="text-lg font-semibold text-foreground leading-relaxed">
+                    {formatCurrency(projectTotal)}
+                  </p>
+                </div>
+              </div>
+            )}
           </div>
         </Card>
 
@@ -904,21 +1177,21 @@ Total: ${formatCurrency(total)}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
           {/* Client Information */}
           <Card className="bg-card border-border elevation-sm p-6">
-            <h4 className="text-foreground mb-4">Client Information</h4>
+            <h4 className="text-base font-medium text-foreground mb-4 leading-normal">Client Information</h4>
             <div className="space-y-3">
               <div>
-                <label className="text-muted-foreground">Client Name</label>
-                <p className="text-foreground">{project.clientName || "N/A"}</p>
+                <label className="text-xs font-medium text-muted-foreground leading-normal">Client Name</label>
+                <p className="text-sm font-normal text-foreground leading-relaxed">{project.clientName || "N/A"}</p>
               </div>
               <div>
-                <label className="text-muted-foreground">Job Location</label>
-                <p className="text-foreground">{project.jobLocation}</p>
+                <label className="text-xs font-medium text-muted-foreground leading-normal">Job Location</label>
+                <p className="text-sm font-normal text-foreground leading-relaxed">{project.jobLocation}</p>
               </div>
               <div>
-                <label className="text-muted-foreground">Full Address</label>
+                <label className="text-xs font-medium text-muted-foreground leading-normal">Full Address</label>
                 <div className="flex items-start gap-2 mt-1">
                   <MapPin className="w-4 h-4 text-muted-foreground mt-0.5 flex-shrink-0" />
-                  <p className="text-foreground">{project.fullAddress || "N/A"}</p>
+                  <p className="text-sm font-normal text-foreground leading-relaxed">{project.fullAddress || "N/A"}</p>
                 </div>
               </div>
             </div>
@@ -926,31 +1199,31 @@ Total: ${formatCurrency(total)}
 
           {/* Staging Information */}
           <Card className="bg-card border-border elevation-sm p-6">
-            <h4 className="text-foreground mb-4">Staging Information</h4>
+            <h4 className="text-base font-medium text-foreground mb-4 leading-normal">Staging Information</h4>
             <div className="space-y-3">
               <div>
-                <label className="text-muted-foreground">Staging Date</label>
+                <label className="text-xs font-medium text-muted-foreground leading-normal">Staging Date</label>
                 <div className="flex items-center gap-2 mt-1">
                   <Calendar className="w-4 h-4 text-muted-foreground" />
-                  <p className="text-foreground">
+                  <p className="text-sm font-normal text-foreground leading-relaxed">
                     {project.stagingDate ? format(project.stagingDate, "MMMM d, yyyy") : "Not set"}
                   </p>
                 </div>
               </div>
               <div>
-                <label className="text-muted-foreground">Staging Status</label>
+                <label className="text-xs font-medium text-muted-foreground leading-normal">Staging Status</label>
                 <div className="mt-1">
                   {getStagingStatusBadge()}
                 </div>
               </div>
               <div>
-                <label className="text-muted-foreground">Assigned By</label>
-                <p className="text-foreground">{project.assignedBy}</p>
+                <label className="text-xs font-medium text-muted-foreground leading-normal">Assigned By</label>
+                <p className="text-sm font-normal text-foreground leading-relaxed">{project.assignedBy}</p>
               </div>
               {project.notes && (
                 <div>
-                  <label className="text-muted-foreground">Notes</label>
-                  <p className="text-foreground">{project.notes}</p>
+                  <label className="text-xs font-medium text-muted-foreground leading-normal">Notes</label>
+                  <p className="text-sm font-normal text-foreground leading-relaxed">{project.notes}</p>
                 </div>
               )}
             </div>
@@ -961,81 +1234,56 @@ Total: ${formatCurrency(total)}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
           {/* Rooms to Stage */}
           <div>
-            <div className="bg-[#f9fafb] dark:bg-card border border-[#e5e7eb] dark:border-border rounded-xl shadow-sm p-6 space-y-6 h-full">
-              <fieldset className="space-y-6">
-                <div className="flex items-center justify-between">
-                  <legend className="text-base font-semibold text-foreground">
-                    Rooms to Stage
-                  </legend>
-                  {onUpdateJob && (
-                    <Button
-                      variant="default"
-                      size="sm"
-                      onClick={() => {
-                        // Create room assignments object - initialize selected rooms with empty arrays or keep existing item assignments
-                        const roomAssignments: Record<string, string[]> = {};
-                        // Only include rooms that have quantity > 0
-                        Object.entries(roomQuantities).forEach(([room, qty]) => {
-                          if (qty > 0) {
-                            // Keep existing item assignments if they exist, otherwise initialize with empty array
-                            roomAssignments[room] = project.roomAssignments?.[room] || [];
-                          }
-                        });
-
-                        // Include custom rooms in room assignments
-                        allRooms.forEach(room => {
-                          const qty = roomQuantities[room] || 0;
-                          if (qty > 0 && !roomAssignments[room]) {
-                            roomAssignments[room] = [];
-                          }
-                        });
-
-                        // Store pricing data for invoice use (including size)
-                        const pricingData: Record<string, { price: number; quantity: number; size?: "small" | "medium" | "large" }> = {};
-                        Object.entries(roomQuantities).forEach(([room, qty]) => {
-                          if (qty > 0) {
-                            const bedroomSize = getBedroomSize(room);
-                            pricingData[room] = {
-                              price: roomPrices[room] || 0,
-                              quantity: qty as number,
-                              size: bedroomSize || undefined,
-                            };
-                          }
-                        });
-                        
-                        // Update the roomPricing state used for invoices
-                        setRoomPricing(pricingData);
-
-                        // Update project with all rooms (including custom) and pricing data
-                        const updatedProject: JobAssignment = {
-                          ...project,
-                          roomAssignments: Object.keys(roomAssignments).length > 0 ? roomAssignments : undefined,
-                          roomPricing: Object.keys(pricingData).length > 0 ? pricingData : undefined,
-                        };
-                        
-                        onUpdateJob(updatedProject);
-                        
-                        toast.success("Rooms and pricing updated successfully");
-                      }}
-                      className="font-medium px-4 h-9 rounded-lg"
-                    >
-                      Save Rooms
-                    </Button>
-                  )}
+            <Card className="bg-card border-border elevation-sm p-6 h-full flex flex-col">
+              {/* Header */}
+              <div className="mb-6 pb-4 border-b border-border">
+                <div>
+                  <h3 className="text-lg font-medium text-foreground mb-1 leading-snug">Rooms to Stage</h3>
+                  <p className="text-sm font-normal text-muted-foreground leading-relaxed">
+                    Select rooms and set quantities for staging. Changes are saved automatically.
+                  </p>
                 </div>
+              </div>
 
-                <div className="space-y-4">
-                  {allRooms.map((room) => {
-                    const isCustom = customRooms.includes(room);
-                    const isSelected = selectedRooms.includes(room);
-                    const quantity = roomQuantities[room] || 0;
-                    
-                    return (
-                      <div
-                        key={room}
-                        className="flex items-center gap-3 px-3 py-3 rounded-lg hover:bg-white dark:hover:bg-muted/50 transition-colors group"
-                      >
-                        {/* Checkbox */}
+              {/* Room List */}
+              <div className="flex-1 space-y-2 mb-4">
+                {allRooms.map((room) => {
+                  const isCustom = customRooms.includes(room);
+                  const isSelected = selectedRooms.includes(room);
+                  const quantity = roomQuantities[room] || 0;
+                  const price = roomPrices[room] || 0;
+                  const subtotal = price * quantity;
+                  
+                  return (
+                    <motion.div
+                      key={room}
+                      initial={false}
+                      animate={{ 
+                        backgroundColor: isSelected ? "var(--color-muted)" : "transparent",
+                        opacity: 1
+                      }}
+                      transition={{ duration: 0.15 }}
+                      className={cn(
+                        "flex items-center gap-3 sm:gap-4 md:gap-6 px-4 sm:px-6 py-3 rounded-lg transition-all duration-200 cursor-pointer",
+                        "hover:bg-muted/60 border-transparent",
+                        isSelected && "bg-muted/40 shadow-sm"
+                      )}
+                      onClick={() => {
+                        if (!isSelected) {
+                          setSelectedRooms([...selectedRooms, room]);
+                          setRoomQuantities(prev => ({ ...prev, [room]: prev[room] || 1 }));
+                          // Initialize price from settings when room is selected
+                          const roomPricingFromSettings = getRoomPricing("medium");
+                          const basePrice = roomPricingFromSettings[room] || 0;
+                          setRoomPrices(prev => ({ ...prev, [room]: basePrice }));
+                        } else {
+                          setSelectedRooms(selectedRooms.filter((r) => r !== room));
+                          setRoomQuantities(prev => ({ ...prev, [room]: 0 }));
+                        }
+                      }}
+                    >
+                      {/* Checkbox */}
+                      <div onClick={(e) => e.stopPropagation()} className="flex items-center">
                         <Checkbox
                           id={`room-${room}`}
                           checked={isSelected}
@@ -1052,163 +1300,221 @@ Total: ${formatCurrency(total)}
                               setRoomQuantities(prev => ({ ...prev, [room]: 0 }));
                             }
                           }}
-                          className="h-4 w-4 shrink-0"
                         />
-                        
-                        {/* Room Label */}
-                        <div className="flex items-center gap-2 flex-1 min-w-0">
-                          <Label
-                            htmlFor={`room-${room}`}
-                            className="text-sm font-normal text-foreground cursor-pointer flex-1 min-w-0"
-                          >
-                            {room}
-                          </Label>
-                          {isCustom && (
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                handleRemoveCustomRoom(room);
-                              }}
-                              className="h-6 w-6 p-0 text-muted-foreground hover:text-destructive shrink-0"
-                              aria-label={`Remove ${room}`}
-                            >
-                              <Minus className="w-3 h-3" />
-                            </Button>
-                          )}
-                        </div>
-                        
-                        {/* Quantity Controls */}
-                        <div className="flex items-center gap-1.5 shrink-0">
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            onClick={() => {
-                              const newQty = Math.max(0, quantity - 1);
-                              setRoomQuantities(prev => ({ ...prev, [room]: newQty }));
-                              if (newQty === 0 && isSelected) {
-                                setSelectedRooms(selectedRooms.filter((r) => r !== room));
-                              }
-                            }}
-                            disabled={quantity <= 0}
-                            className="h-9 w-9 p-0 shrink-0 border-[#e5e7eb] dark:border-border hover:bg-white dark:hover:bg-muted disabled:opacity-40 disabled:cursor-not-allowed"
-                            aria-label={`Decrease ${room} quantity`}
-                          >
-                            <Minus className="w-4 h-4" />
-                          </Button>
-                          <Input
-                            type="number"
-                            min="0"
-                            value={quantity}
-                            onChange={(e) => {
-                              const qty = parseInt(e.target.value) || 0;
-                              setRoomQuantities(prev => ({ ...prev, [room]: Math.max(0, qty) }));
-                              if (qty > 0 && !isSelected) {
-                                setSelectedRooms([...selectedRooms, room]);
-                              } else if (qty === 0 && isSelected) {
-                                setSelectedRooms(selectedRooms.filter((r) => r !== room));
-                              }
-                            }}
-                            className="w-14 h-9 text-center text-sm border-[#e5e7eb] dark:border-border bg-white dark:bg-background focus-visible:ring-2 focus-visible:ring-ring"
-                            aria-label={`${room} quantity`}
-                          />
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            onClick={() => {
-                              setRoomQuantities(prev => ({ ...prev, [room]: (prev[room] || 0) + 1 }));
-                              if (!isSelected) {
-                                setSelectedRooms([...selectedRooms, room]);
-                              }
-                            }}
-                            className="h-9 w-9 p-0 shrink-0 border-[#e5e7eb] dark:border-border hover:bg-white dark:hover:bg-muted"
-                            aria-label={`Increase ${room} quantity`}
-                          >
-                            <Plus className="w-4 h-4" />
-                          </Button>
-                        </div>
-
-                        {/* Price Input */}
-                        <div className="flex items-center gap-1 shrink-0">
-                          <span className="text-sm text-muted-foreground">$</span>
-                          <Input
-                            type="number"
-                            min="0"
-                            step="0.01"
-                            value={roomPrices[room] || ""}
-                            onChange={(e) => {
-                              const price = parseFloat(e.target.value) || 0;
-                              setRoomPrices(prev => ({ ...prev, [room]: Math.max(0, price) }));
-                            }}
-                            placeholder="0.00"
-                            className="w-20 h-9 text-sm border-[#e5e7eb] dark:border-border bg-white dark:bg-background focus-visible:ring-2 focus-visible:ring-ring"
-                            aria-label={`${room} price`}
-                          />
-                        </div>
                       </div>
-                    );
-                  })}
-                  
-                  {/* Add Custom Room */}
-                  {showAddRoomInput ? (
-                    <div className="flex items-center gap-2 px-3 py-3 rounded-lg border border-[#e5e7eb] dark:border-border bg-white dark:bg-background">
-                      <Input
-                        type="text"
-                        value={newRoomName}
-                        onChange={(e) => setNewRoomName(e.target.value)}
-                        onKeyDown={(e) => {
-                          if (e.key === "Enter") {
-                            handleAddCustomRoom();
-                          } else if (e.key === "Escape") {
-                            setShowAddRoomInput(false);
-                            setNewRoomName("");
-                          }
-                        }}
-                        placeholder="Enter room name..."
-                        className="flex-1 h-9 text-sm"
-                        autoFocus
-                      />
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={handleAddCustomRoom}
-                        className="h-9 px-3 shrink-0"
-                      >
-                        Add
-                      </Button>
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => {
+                      
+                      {/* Room Name */}
+                      <div className="flex items-center gap-2 flex-1 min-w-[120px] sm:min-w-[140px] overflow-hidden">
+                        <Label
+                          htmlFor={`room-${room}`}
+                          className={cn(
+                            "text-sm font-medium cursor-pointer truncate transition-colors flex-1 min-w-0",
+                            isSelected ? "text-foreground font-semibold" : "text-foreground"
+                          )}
+                          title={room}
+                        >
+                          {room}
+                        </Label>
+                        {isCustom && (
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleRemoveCustomRoom(room);
+                            }}
+                            className="h-6 w-6 p-0 text-muted-foreground hover:text-destructive hover:bg-destructive/10 shrink-0 transition-colors ml-1"
+                            aria-label={`Remove ${room}`}
+                          >
+                            <Minus className="w-3 h-3" />
+                          </Button>
+                        )}
+                      </div>
+                      
+                      {/* Quantity Controls */}
+                      <div className="flex items-center gap-1.5 shrink-0 flex-shrink-0">
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            const newQty = Math.max(0, quantity - 1);
+                            setRoomQuantities(prev => ({ ...prev, [room]: newQty }));
+                            if (newQty === 0 && isSelected) {
+                              setSelectedRooms(selectedRooms.filter((r) => r !== room));
+                            }
+                          }}
+                          disabled={quantity <= 0}
+                          className="h-[30px] w-[30px] p-0 shrink-0 rounded-md border-border hover:bg-muted hover:border-foreground/20 disabled:opacity-30 disabled:cursor-not-allowed transition-all flex-shrink-0 flex items-center justify-center"
+                          aria-label={`Decrease ${room} quantity`}
+                        >
+                          <Minus className="w-4 h-4 flex-shrink-0" strokeWidth={2.5} />
+                        </Button>
+                        <Input
+                          type="number"
+                          min="0"
+                          value={quantity}
+                          onChange={(e) => {
+                            const qty = parseInt(e.target.value) || 0;
+                            setRoomQuantities(prev => ({ ...prev, [room]: Math.max(0, qty) }));
+                            if (qty > 0 && !isSelected) {
+                              setSelectedRooms([...selectedRooms, room]);
+                            } else if (qty === 0 && isSelected) {
+                              setSelectedRooms(selectedRooms.filter((r) => r !== room));
+                            }
+                          }}
+                          onClick={(e) => e.stopPropagation()}
+                          className="w-24 h-[30px] text-center text-sm border-border bg-background focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-0 flex-shrink-0 px-2 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+                          aria-label={`${room} quantity`}
+                        />
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setRoomQuantities(prev => ({ ...prev, [room]: (prev[room] || 0) + 1 }));
+                            if (!isSelected) {
+                              setSelectedRooms([...selectedRooms, room]);
+                            }
+                          }}
+                          className="h-[30px] w-[30px] p-0 shrink-0 rounded-md border-border hover:bg-muted hover:border-foreground/20 transition-all flex-shrink-0 flex items-center justify-center"
+                          aria-label={`Increase ${room} quantity`}
+                        >
+                          <Plus className="w-4 h-4 flex-shrink-0" strokeWidth={2.5} />
+                        </Button>
+                      </div>
+
+                      {/* Price Input - Right Aligned */}
+                      <div className="flex items-center gap-1.5 shrink-0 min-w-[90px] justify-end ml-2 sm:ml-4">
+                        <span className="text-sm text-muted-foreground font-medium">$</span>
+                        <Input
+                          type="number"
+                          min="0"
+                          step="0.01"
+                          value={roomPrices[room] || ""}
+                          onChange={(e) => {
+                            const price = parseFloat(e.target.value) || 0;
+                            setRoomPrices(prev => ({ ...prev, [room]: Math.max(0, price) }));
+                          }}
+                          placeholder="0.00"
+                          className="w-24 h-8 text-right text-sm border-border bg-background focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-0 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+                          aria-label={`${room} price`}
+                        />
+                      </div>
+                    </motion.div>
+                  );
+                })}
+                
+                {/* Add Custom Room */}
+                {showAddRoomInput ? (
+                  <motion.div
+                    initial={{ opacity: 0, height: 0 }}
+                    animate={{ opacity: 1, height: "auto" }}
+                    exit={{ opacity: 0, height: 0 }}
+                    className="flex items-center gap-2 px-4 py-3 rounded-lg border-2 border-dashed border-border bg-muted/30"
+                  >
+                    <Input
+                      type="text"
+                      value={newRoomName}
+                      onChange={(e) => setNewRoomName(e.target.value)}
+                      onKeyDown={(e) => {
+                        if (e.key === "Enter") {
+                          handleAddCustomRoom();
+                        } else if (e.key === "Escape") {
                           setShowAddRoomInput(false);
                           setNewRoomName("");
-                        }}
-                        className="h-9 w-9 p-0 shrink-0"
-                      >
-                        <Minus className="w-4 h-4" />
-                      </Button>
-                    </div>
-                  ) : (
+                        }
+                      }}
+                      placeholder="Enter room name..."
+                      className="flex-1 h-9 text-sm border-border bg-background"
+                      autoFocus
+                    />
                     <Button
-                      variant="outline"
+                      variant="default"
                       size="sm"
-                      onClick={() => setShowAddRoomInput(true)}
-                      className="w-full h-9 text-sm border-dashed border-[#e5e7eb] dark:border-border hover:bg-muted/50"
+                      onClick={handleAddCustomRoom}
+                      className="h-9 px-4 shrink-0 bg-primary text-primary-foreground hover:bg-primary/90"
                     >
-                      <Plus className="w-4 h-4 mr-2" />
-                      Add Custom Room
+                      Add
                     </Button>
-                  )}
-                </div>
-
-                {selectedRooms.length === 0 && (
-                  <p className="text-sm text-muted-foreground text-center py-4">
-                    No rooms selected for staging
-                  </p>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => {
+                        setShowAddRoomInput(false);
+                        setNewRoomName("");
+                      }}
+                      className="h-9 w-9 p-0 shrink-0 hover:bg-muted"
+                    >
+                      <Minus className="w-4 h-4" />
+                    </Button>
+                  </motion.div>
+                ) : (
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setShowAddRoomInput(true)}
+                    className="w-full h-10 text-sm border-dashed border-border hover:bg-muted/50 hover:border-foreground/30 transition-all"
+                  >
+                    <Plus className="w-4 h-4 mr-2" />
+                    Add Custom Room
+                  </Button>
                 )}
-              </fieldset>
-            </div>
+              </div>
+
+              {/* Empty State */}
+              {selectedRooms.length === 0 && (
+                <div className="flex-1 flex items-center justify-center py-8">
+                  <div className="text-center">
+                    <Package className="w-12 h-12 text-muted-foreground mx-auto mb-3 opacity-50" />
+                    <p className="text-sm font-normal text-muted-foreground leading-relaxed">No rooms selected for staging</p>
+                    <p className="text-xs font-normal text-muted-foreground mt-1 leading-relaxed">Select rooms above to get started</p>
+                  </div>
+                </div>
+              )}
+
+              {/* Total Summary */}
+              {(() => {
+                const selectedRoomsWithData = allRooms.filter(room => {
+                  const qty = roomQuantities[room] || 0;
+                  return qty > 0;
+                });
+                
+                if (selectedRoomsWithData.length === 0) return null;
+                
+                const totalRooms = selectedRoomsWithData.reduce((sum, room) => {
+                  return sum + (roomQuantities[room] || 0);
+                }, 0);
+                
+                const totalPrice = selectedRoomsWithData.reduce((sum, room) => {
+                  const qty = roomQuantities[room] || 0;
+                  const price = roomPrices[room] || 0;
+                  return sum + (price * qty);
+                }, 0);
+                
+                return (
+                  <motion.div
+                    initial={{ opacity: 0, y: 10 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    className="mt-4 pt-4 border-t border-border bg-muted/20 rounded-lg p-4"
+                  >
+                    <div className="flex items-center justify-between mb-2">
+                      <span className="text-sm font-medium text-muted-foreground">Total Rooms</span>
+                      <span className="text-sm font-semibold text-foreground">{totalRooms}</span>
+                    </div>
+                    <div className="flex items-center justify-between mb-2">
+                      <span className="text-base font-semibold text-foreground">Total Price</span>
+                      <span className="text-lg font-bold text-foreground">
+                        ${totalPrice.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                      </span>
+                    </div>
+                    <p className="text-xs text-muted-foreground text-right mt-1">
+                      Before taxes and without delivery fees
+                    </p>
+                  </motion.div>
+                );
+              })()}
+            </Card>
           </div>
 
           {/* Insights & Analytics */}
@@ -1218,33 +1524,33 @@ Total: ${formatCurrency(total)}
               <div className="space-y-2">
                 <div className="flex items-center gap-2 text-muted-foreground">
                   <Package className="w-4 h-4" />
-                  <label className="text-muted-foreground">Total Items</label>
+                  <label className="text-xs font-medium text-muted-foreground leading-normal">Total Items</label>
                 </div>
-                <p className="text-foreground">{projectItems.length}</p>
+                <p className="text-sm font-normal text-foreground leading-relaxed">{projectItems.length}</p>
               </div>
 
               <div className="space-y-2">
                 <div className="flex items-center gap-2 text-muted-foreground">
                   <DollarSign className="w-4 h-4" />
-                  <label className="text-muted-foreground">Total Value</label>
+                  <label className="text-xs font-medium text-muted-foreground leading-normal">Inventory Value</label>
                 </div>
-                <p className="text-foreground">${totalValue.toLocaleString()}</p>
+                <p className="text-sm font-normal text-foreground leading-relaxed">{formatCurrency(inventoryValue)}</p>
               </div>
 
               <div className="space-y-2">
                 <div className="flex items-center gap-2 text-muted-foreground">
                   <TrendingUp className="w-4 h-4" />
-                  <label className="text-muted-foreground">Most Used Category</label>
+                  <label className="text-xs font-medium text-muted-foreground leading-normal">Most Used Category</label>
                 </div>
-                <p className="text-foreground">{mostUsedCategory?.[0] || "N/A"}</p>
+                <p className="text-sm font-normal text-foreground leading-relaxed">{mostUsedCategory?.[0] || "N/A"}</p>
               </div>
 
               <div className="space-y-2">
                 <div className="flex items-center gap-2 text-muted-foreground">
                   <CheckCircle className="w-4 h-4" />
-                  <label className="text-muted-foreground">Status</label>
+                  <label className="text-xs font-medium text-muted-foreground leading-normal">Status</label>
                 </div>
-                <p className="text-foreground capitalize">{project.status}</p>
+                <p className="text-sm font-normal text-foreground capitalize leading-relaxed">{project.status}</p>
               </div>
             </div>
           </Card>
@@ -1254,7 +1560,9 @@ Total: ${formatCurrency(total)}
 
         {/* Items List */}
         <Card className="bg-card border-border elevation-sm p-6">
-          <h4 className="text-foreground mb-6">Staged Items ({projectItems.length})</h4>
+          <h4 className="text-foreground mb-6">
+            {isStaged ? "Staged Items" : "Assigned Items"} ({projectItems.length})
+          </h4>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
             {projectItems.map((item) => (
               <motion.div
@@ -1298,15 +1606,21 @@ Total: ${formatCurrency(total)}
                   <p className="text-muted-foreground mb-4">
                     Items will be staged on {project.stagingDate ? format(project.stagingDate, "MMMM d, yyyy") : "TBD"}
                   </p>
-                </>
-              ) : (
-                <>
-                  <p className="text-muted-foreground mb-4">No items staged yet</p>
                   <Button
                     className="bg-primary text-primary-foreground hover:bg-primary/90"
                     onClick={() => onNavigate("library", { selectedProjectId: project.id })}
                   >
-                    Add Items to Project
+                    {isUpcoming ? "Add Inventory" : "Add Items to Project"}
+                  </Button>
+                </>
+              ) : (
+                <>
+                  <p className="text-muted-foreground mb-4">No items assigned yet</p>
+                  <Button
+                    className="bg-primary text-primary-foreground hover:bg-primary/90"
+                    onClick={() => onNavigate("library", { selectedProjectId: project.id })}
+                  >
+                    {isUpcoming ? "Add Inventory" : "Add Items to Project"}
                   </Button>
                 </>
               )}
@@ -1314,6 +1628,232 @@ Total: ${formatCurrency(total)}
           )}
         </Card>
       </motion.div>
+
+      {/* Edit Project Dialog */}
+      <Dialog open={editDialogOpen} onOpenChange={setEditDialogOpen}>
+        <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle className="text-xl font-semibold text-foreground leading-snug">
+              Edit Project
+            </DialogTitle>
+            <DialogDescription className="text-sm font-normal text-muted-foreground leading-relaxed">
+              Update the project details below
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="space-y-6">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="edit-client-name">
+                  Client Name <span className="text-destructive">*</span>
+                </Label>
+                <Input
+                  id="edit-client-name"
+                  value={editedProject.clientName || ""}
+                  onChange={(e) => setEditedProject({ ...editedProject, clientName: e.target.value })}
+                  placeholder="Enter client name"
+                  required
+                />
+              </div>
+
+              <div className="space-y-2 md:col-span-2">
+                <Label htmlFor="edit-job-location">
+                  Job Location <span className="text-destructive">*</span>
+                </Label>
+                <Input
+                  id="edit-job-location"
+                  value={editedProject.jobLocation}
+                  onChange={(e) => {
+                    const location = e.target.value;
+                    setEditedProject({
+                      ...editedProject,
+                      jobLocation: location,
+                      shortAddress: location.split(",")[0],
+                      fullAddress: location,
+                    });
+                  }}
+                  placeholder="Enter location"
+                  required
+                />
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="edit-client-email">
+                  Client Email
+                </Label>
+                <Input
+                  id="edit-client-email"
+                  type="email"
+                  value={editedProject.clientEmail || ""}
+                  onChange={(e) => setEditedProject({ ...editedProject, clientEmail: e.target.value })}
+                  placeholder="client@example.com"
+                />
+                <p className="text-xs text-muted-foreground">
+                  If you don't add an email, you won't be able to send an invoice.
+                </p>
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="edit-status">
+                  Status
+                </Label>
+                <Select
+                  value={editedProject.status}
+                  onValueChange={(value: "active" | "archived") => {
+                    setEditedProject({ ...editedProject, status: value });
+                  }}
+                >
+                  <SelectTrigger id="edit-status">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="active">Active</SelectItem>
+                    <SelectItem value="archived">Archived</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+
+            <div className="space-y-3">
+              <Label>
+                Requested Staging Date
+              </Label>
+              <div className="flex flex-col gap-3">
+                <div className="flex items-center gap-2">
+                  <input
+                    type="radio"
+                    id="edit-stagingDate-select"
+                    name="editStagingDateOption"
+                    checked={editStagingDateOption === "date"}
+                    onChange={() => {
+                      setEditStagingDateOption("date");
+                    }}
+                    className="h-4 w-4 text-accent border-border focus:ring-accent cursor-pointer"
+                  />
+                  <Label htmlFor="edit-stagingDate-select" className="cursor-pointer font-normal">
+                    Select a date
+                  </Label>
+                </div>
+                {editStagingDateOption === "date" && (
+                  <div className="ml-6">
+                    <Popover>
+                      <PopoverTrigger asChild>
+                        <Button
+                          variant="outline"
+                          className="w-full justify-start"
+                          type="button"
+                        >
+                          {editedProject.stagingDate ? format(editedProject.stagingDate, "PP") : "Pick a date"}
+                        </Button>
+                      </PopoverTrigger>
+                      <PopoverContent className="w-auto p-0">
+                        <CalendarComponent
+                          mode="single"
+                          selected={editedProject.stagingDate}
+                          onSelect={(date) => {
+                            if (date) {
+                              // Update staging status based on date
+                              const isUpcoming = date > currentDate;
+                              setEditedProject({
+                                ...editedProject,
+                                stagingDate: date,
+                                stagingStatus: isUpcoming ? "upcoming" : "staged",
+                              });
+                            }
+                          }}
+                        />
+                      </PopoverContent>
+                    </Popover>
+                  </div>
+                )}
+                <div className="flex items-center gap-2">
+                  <input
+                    type="radio"
+                    id="edit-stagingDate-tbd"
+                    name="editStagingDateOption"
+                    checked={editStagingDateOption === "tbd"}
+                    onChange={() => {
+                      setEditStagingDateOption("tbd");
+                      setEditedProject({
+                        ...editedProject,
+                        stagingDate: undefined,
+                        stagingStatus: undefined,
+                      });
+                    }}
+                    className="h-4 w-4 text-accent border-border focus:ring-accent cursor-pointer"
+                  />
+                  <Label htmlFor="edit-stagingDate-tbd" className="cursor-pointer font-normal">
+                    To be determined
+                  </Label>
+                </div>
+              </div>
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="edit-notes">Notes (Optional)</Label>
+              <Textarea
+                id="edit-notes"
+                value={editedProject.notes || ""}
+                onChange={(e) => setEditedProject({ ...editedProject, notes: e.target.value })}
+                placeholder="Add any additional notes..."
+                rows={4}
+              />
+            </div>
+
+            <div className="flex gap-3 pt-4 border-t border-border">
+              <Button
+                variant="outline"
+                onClick={() => {
+                  setEditDialogOpen(false);
+                  setEditedProject(project);
+                  setEditStagingDateOption(project.stagingDate ? "date" : "tbd");
+                }}
+                className="flex-1"
+              >
+                Cancel
+              </Button>
+              <Button
+                onClick={async () => {
+                  if (!editedProject.clientName || !editedProject.jobLocation) {
+                    toast.error("Please fill in all required fields");
+                    return;
+                  }
+
+                  setIsSaving(true);
+
+                  // Simulate API call
+                  await new Promise((resolve) => setTimeout(resolve, 500));
+
+                  // Calculate end date based on staging date and contract duration
+                  const contractDuration = getSetting("contractDuration");
+                  let updatedEndDate = editedProject.endDate;
+                  
+                  if (editedProject.stagingDate) {
+                    updatedEndDate = new Date(editedProject.stagingDate.getTime() + contractDuration * 24 * 60 * 60 * 1000);
+                  }
+
+                  const updatedProject: JobAssignment = {
+                    ...editedProject,
+                    endDate: updatedEndDate,
+                  };
+
+                  if (onUpdateJob) {
+                    onUpdateJob(updatedProject);
+                  }
+
+                  toast.success("Project updated successfully");
+                  setIsSaving(false);
+                  setEditDialogOpen(false);
+                }}
+                disabled={isSaving}
+                className="flex-1 bg-primary text-primary-foreground hover:bg-primary/90"
+              >
+                {isSaving ? "Saving..." : "Save Changes"}
+              </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

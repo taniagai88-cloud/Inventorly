@@ -20,16 +20,18 @@ import { Badge } from "./ui/badge";
 import { Card } from "./ui/card";
 import { toast } from "sonner@2.0.3";
 import type { AppState } from "../types";
-import chairImage from "figma:asset/af97294c1da1ac8535a59452f21be667a162fcff.png";
+import diningSetImage from "../assets/dining-room.jpg";
+import { ImageWithFallback } from "./figma/ImageWithFallback";
 
 interface AddItemProps {
-  onNavigate: (state: AppState) => void;
+  onNavigate: (state: AppState, data?: any) => void;
   onSave: (item: any) => void;
+  previousState?: AppState;
 }
 
 type Step = "photo" | "tags" | "review";
 
-export function AddItem({ onNavigate, onSave }: AddItemProps) {
+export function AddItem({ onNavigate, onSave, previousState = "dashboard" }: AddItemProps) {
   const [step, setStep] = useState<Step>("photo");
   const [imageUrl, setImageUrl] = useState("");
   const [itemName, setItemName] = useState("");
@@ -45,7 +47,25 @@ export function AddItem({ onNavigate, onSave }: AddItemProps) {
     // Simulate photo capture/upload
     await new Promise((resolve) => setTimeout(resolve, 1000));
     
-    setImageUrl(chairImage);
+    // Use dining set image as example when "Take Photo" is clicked
+    // This simulates capturing the dining set image
+    // Using dining set image for dining set
+    
+    // Automatically detect multiple items in the image
+    // For "Take Photo" specifically, detect dining set items
+    if (type === "camera") {
+      // Navigate to multi-item upload with auto-load flag
+      // The MultiItemImageUpload component will handle detecting multiple items
+      toast.info("Detecting multiple items in image...");
+      // Navigate with data to auto-load dining set image
+      setTimeout(() => {
+        onNavigate("multiItemUpload" as AppState, { autoLoadDiningSet: true });
+      }, 500);
+      return;
+    }
+    
+    // For upload, use single item flow
+    setImageUrl(diningSetImage);
     setStep("tags");
   };
 
@@ -123,7 +143,8 @@ export function AddItem({ onNavigate, onSave }: AddItemProps) {
             variant="ghost"
             onClick={() => {
               if (step === "photo") {
-                onNavigate("library");
+                // Always navigate back to dashboard
+                onNavigate("dashboard");
               } else if (step === "tags") {
                 setStep("photo");
               } else if (step === "review") {
@@ -179,8 +200,8 @@ export function AddItem({ onNavigate, onSave }: AddItemProps) {
                 <div className="flex justify-center mb-4">
                   <Package className="w-12 h-12 text-primary" />
                 </div>
-                <h2 className="text-foreground mb-2">Add an item to your inventory</h2>
-                <p className="text-muted-foreground">
+                <h2 className="text-xl font-semibold text-foreground mb-2 leading-snug">Add an item to your inventory</h2>
+                <p className="text-sm font-normal text-muted-foreground leading-relaxed">
                   Take or upload a photo of your item
                 </p>
               </div>
@@ -205,10 +226,22 @@ export function AddItem({ onNavigate, onSave }: AddItemProps) {
                 </Button>
               </div>
 
-              <div className="text-center mt-6">
+              <div className="text-center mt-6 space-y-2">
+                <button
+                  onClick={() => onNavigate("imageGallery")}
+                  className="text-primary hover:underline block w-full"
+                >
+                  View All Images →
+                </button>
+                <button
+                  onClick={() => onNavigate("multiItemUpload")}
+                  className="text-primary hover:underline block w-full"
+                >
+                  Upload Image with Multiple Items →
+                </button>
                 <button
                   onClick={() => onNavigate("bulkUpload")}
-                  className="text-primary hover:underline"
+                  className="text-primary hover:underline block w-full"
                 >
                   Bulk Upload Items →
                 </button>
@@ -222,7 +255,7 @@ export function AddItem({ onNavigate, onSave }: AddItemProps) {
               <div className="flex items-start gap-4 mb-6">
                 <div className="w-20 h-20 bg-white rounded-lg flex items-center justify-center flex-shrink-0 p-2">
                   {imageUrl ? (
-                    <img
+                    <ImageWithFallback
                       src={imageUrl}
                       alt="Item preview"
                       className="w-full h-full object-contain"
@@ -232,8 +265,8 @@ export function AddItem({ onNavigate, onSave }: AddItemProps) {
                   )}
                 </div>
                 <div className="flex-1">
-                  <h3 className="text-foreground mb-2">Item Details</h3>
-                  <p className="text-muted-foreground">
+                  <h3 className="text-lg font-medium text-foreground mb-2 leading-snug">Item Details</h3>
+                  <p className="text-sm font-normal text-muted-foreground leading-relaxed">
                     Add details manually or use AI auto-tag
                   </p>
                 </div>
@@ -392,7 +425,7 @@ export function AddItem({ onNavigate, onSave }: AddItemProps) {
                 <Button
                   onClick={handleContinue}
                   disabled={!itemName || !category || !location || !purchaseCost}
-                  className="w-full"
+                  className="w-full bg-[var(--color-accent)] text-white hover:bg-[var(--color-secondary)]"
                 >
                   Continue
                 </Button>
@@ -402,13 +435,13 @@ export function AddItem({ onNavigate, onSave }: AddItemProps) {
 
           {step === "review" && (
             <Card className="bg-card border-border elevation-sm p-8">
-              <h2 className="text-foreground mb-6">Review & Save</h2>
+              <h2 className="text-xl font-semibold text-foreground mb-6 leading-snug">Review & Save</h2>
 
               <div className="space-y-6">
                 {/* Image Preview */}
                 <div className="w-full h-48 bg-white rounded-lg flex items-center justify-center p-6">
                   {imageUrl ? (
-                    <img
+                    <ImageWithFallback
                       src={imageUrl}
                       alt={itemName}
                       className="w-full h-full object-contain"
@@ -421,23 +454,23 @@ export function AddItem({ onNavigate, onSave }: AddItemProps) {
                 {/* Item Details */}
                 <div className="space-y-4">
                   <div>
-                    <h4 className="text-foreground mb-1">{itemName}</h4>
-                    <p className="text-muted-foreground">{category}</p>
+                    <h4 className="text-base font-medium text-foreground mb-1 leading-normal">{itemName}</h4>
+                    <p className="text-sm font-normal text-muted-foreground leading-relaxed">{category}</p>
                   </div>
 
                   <div className="grid grid-cols-2 gap-4">
                     <div>
-                      <p className="text-muted-foreground mb-1">Location</p>
-                      <p className="text-foreground">{location}</p>
+                      <p className="text-xs font-medium text-muted-foreground mb-1 leading-normal">Location</p>
+                      <p className="text-sm font-normal text-foreground leading-relaxed">{location}</p>
                     </div>
                     <div>
-                      <p className="text-muted-foreground mb-1">Purchase Cost</p>
-                      <p className="text-foreground">${purchaseCost}</p>
+                      <p className="text-xs font-medium text-muted-foreground mb-1 leading-normal">Purchase Cost</p>
+                      <p className="text-sm font-normal text-foreground leading-relaxed">${purchaseCost}</p>
                     </div>
                   </div>
 
                   <div>
-                    <p className="text-muted-foreground mb-2">Tags</p>
+                    <p className="text-xs font-medium text-muted-foreground mb-2 leading-normal">Tags</p>
                     <div className="flex flex-wrap gap-2">
                       {aiTags.map((tag) => (
                         <Badge key={tag} variant="secondary">
@@ -467,7 +500,7 @@ export function AddItem({ onNavigate, onSave }: AddItemProps) {
                   >
                     Edit
                   </Button>
-                  <Button onClick={handleSave} className="flex-1">
+                  <Button onClick={handleSave} className="flex-1 bg-[var(--color-accent)] text-white hover:bg-[var(--color-secondary)]">
                     Save Item
                   </Button>
                 </div>

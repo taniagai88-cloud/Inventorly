@@ -29,20 +29,29 @@ import {
   Tooltip,
   ResponsiveContainer,
 } from "recharts";
-import type { AppState, InventoryItem } from "../types";
+import type { AppState, InventoryItem, JobAssignment } from "../types";
+import { getAccurateItemQuantities } from "../utils/projectUtils";
 
 interface ReportsInsightsProps {
   items: InventoryItem[];
   onNavigate: (state: AppState, data?: any) => void;
   selectedItem?: InventoryItem | null;
+  jobAssignments?: JobAssignment[];
 }
 
-export function ReportsInsights({ items, onNavigate, selectedItem }: ReportsInsightsProps) {
+export function ReportsInsights({ items, onNavigate, selectedItem, jobAssignments = [] }: ReportsInsightsProps) {
   const [dateRange, setDateRange] = useState("30days");
 
-  const totalItems = items.reduce((sum, item) => sum + item.totalQuantity, 0);
-  const itemsInUse = items.reduce((sum, item) => sum + item.inUseQuantity, 0);
-  const totalValue = items.reduce((sum, item) => sum + item.purchaseCost * item.totalQuantity, 0);
+  // Calculate accurate quantities based on project assignments
+  const activeProjects = jobAssignments.filter(job => job.status === "active");
+  const itemsWithAccurateQuantities = items.map(item => {
+    const accurateQuantities = getAccurateItemQuantities(item, activeProjects);
+    return { ...item, ...accurateQuantities };
+  });
+  
+  const totalItems = itemsWithAccurateQuantities.reduce((sum, item) => sum + item.totalQuantity, 0);
+  const itemsInUse = itemsWithAccurateQuantities.reduce((sum, item) => sum + item.inUseQuantity, 0);
+  const totalValue = itemsWithAccurateQuantities.reduce((sum, item) => sum + item.purchaseCost * item.totalQuantity, 0);
   const avgUtilization = Math.round((itemsInUse / totalItems) * 100);
 
   const kpis = [
@@ -85,7 +94,7 @@ export function ReportsInsights({ items, onNavigate, selectedItem }: ReportsInsi
     { date: "Oct 29", items: itemsInUse },
   ];
 
-  const categoryData = items.reduce((acc, item) => {
+  const categoryData = itemsWithAccurateQuantities.reduce((acc, item) => {
     const existing = acc.find((c) => c.category === item.category);
     if (existing) {
       existing.count += item.totalQuantity;
@@ -104,7 +113,7 @@ export function ReportsInsights({ items, onNavigate, selectedItem }: ReportsInsi
     { month: "Oct", revenue: 28300 },
   ];
 
-  const topPerformers = [...items]
+  const topPerformers = [...itemsWithAccurateQuantities]
     .sort((a, b) => b.usageCount - a.usageCount)
     .slice(0, 5)
     .map((item) => ({
@@ -113,7 +122,7 @@ export function ReportsInsights({ items, onNavigate, selectedItem }: ReportsInsi
       utilization: Math.round((item.inUseQuantity / item.totalQuantity) * 100),
     }));
 
-  const lowStockItems = items.filter((item) => item.availableQuantity <= 3);
+  const lowStockItems = itemsWithAccurateQuantities.filter((item) => item.availableQuantity <= 3);
 
   const handleExport = () => {
     const csvContent = "data:text/csv;charset=utf-8," + "Item,Category,Total Uses,Revenue\n" +
@@ -146,9 +155,9 @@ export function ReportsInsights({ items, onNavigate, selectedItem }: ReportsInsi
         {/* Header */}
         <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between mb-8 gap-4">
           <div>
-            <h2 className="text-foreground">Reports & Insights</h2>
+            <h2 className="text-xl font-semibold text-foreground leading-snug">Reports & Insights</h2>
             {selectedItem && (
-              <p className="text-muted-foreground mt-1">
+              <p className="text-sm font-normal text-muted-foreground mt-1 leading-relaxed">
                 Viewing insights for: {selectedItem.name}
               </p>
             )}
@@ -183,25 +192,25 @@ export function ReportsInsights({ items, onNavigate, selectedItem }: ReportsInsi
               <div className="flex items-start justify-between gap-4">
                 <div className="flex-1">
                   <div className="flex items-center gap-3 mb-3">
-                    <h3 className="text-foreground">{selectedItem.name}</h3>
+                    <h3 className="text-lg font-medium text-foreground leading-snug">{selectedItem.name}</h3>
                     <Badge variant="outline">{selectedItem.category}</Badge>
                   </div>
                   <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
                     <div>
-                      <p className="text-muted-foreground mb-1">Total Uses</p>
-                      <p className="text-foreground">{selectedItem.usageCount}</p>
+                      <p className="text-xs font-medium text-muted-foreground mb-1 leading-normal">Total Uses</p>
+                      <p className="text-sm font-normal text-foreground leading-relaxed">{selectedItem.usageCount}</p>
                     </div>
                     <div>
-                      <p className="text-muted-foreground mb-1">Total Quantity</p>
-                      <p className="text-foreground">{selectedItem.totalQuantity}</p>
+                      <p className="text-xs font-medium text-muted-foreground mb-1 leading-normal">Total Quantity</p>
+                      <p className="text-sm font-normal text-foreground leading-relaxed">{selectedItem.totalQuantity}</p>
                     </div>
                     <div>
-                      <p className="text-muted-foreground mb-1">In Use</p>
-                      <p className="text-foreground">{selectedItem.inUseQuantity}</p>
+                      <p className="text-xs font-medium text-muted-foreground mb-1 leading-normal">In Use</p>
+                      <p className="text-sm font-normal text-foreground leading-relaxed">{selectedItem.inUseQuantity}</p>
                     </div>
                     <div>
-                      <p className="text-muted-foreground mb-1">Utilization</p>
-                      <p className="text-foreground">
+                      <p className="text-xs font-medium text-muted-foreground mb-1 leading-normal">Utilization</p>
+                      <p className="text-sm font-normal text-foreground leading-relaxed">
                         {Math.round((selectedItem.inUseQuantity / selectedItem.totalQuantity) * 100)}%
                       </p>
                     </div>
@@ -243,8 +252,8 @@ export function ReportsInsights({ items, onNavigate, selectedItem }: ReportsInsi
                     </span>
                   </div>
                 </div>
-                <h3 className="text-foreground mb-1">{kpi.value}</h3>
-                <p className="text-muted-foreground">{kpi.label}</p>
+                <h3 className="text-lg font-medium text-foreground mb-1 leading-snug">{kpi.value}</h3>
+                <p className="text-sm font-normal text-muted-foreground leading-relaxed">{kpi.label}</p>
               </Card>
             </motion.div>
           ))}
@@ -254,7 +263,7 @@ export function ReportsInsights({ items, onNavigate, selectedItem }: ReportsInsi
         <div className="space-y-6 mb-8">
           {/* Usage Over Time */}
           <Card className="bg-card border-border elevation-sm p-6">
-            <h3 className="text-foreground mb-6">Inventory Usage Over Time</h3>
+            <h3 className="text-lg font-medium text-foreground mb-6 leading-snug">Inventory Usage Over Time</h3>
             <ResponsiveContainer width="100%" height={300}>
               <LineChart data={usageData}>
                 <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" />
@@ -281,7 +290,7 @@ export function ReportsInsights({ items, onNavigate, selectedItem }: ReportsInsi
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
             {/* Items by Category */}
             <Card className="bg-card border-border elevation-sm p-6">
-              <h3 className="text-foreground mb-6">Items by Category</h3>
+              <h3 className="text-lg font-medium text-foreground mb-6 leading-snug">Items by Category</h3>
               <ResponsiveContainer width="100%" height={300}>
                 <BarChart data={categoryData}>
                   <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" />
@@ -301,7 +310,7 @@ export function ReportsInsights({ items, onNavigate, selectedItem }: ReportsInsi
 
             {/* Revenue Generated */}
             <Card className="bg-card border-border elevation-sm p-6">
-              <h3 className="text-foreground mb-6">Revenue Generated</h3>
+              <h3 className="text-lg font-medium text-foreground mb-6 leading-snug">Revenue Generated</h3>
               <ResponsiveContainer width="100%" height={300}>
                 <AreaChart data={revenueData}>
                   <defs>
@@ -335,16 +344,16 @@ export function ReportsInsights({ items, onNavigate, selectedItem }: ReportsInsi
 
         {/* Top Performing Items Table */}
         <Card className="bg-card border-border elevation-sm p-6 mb-8">
-          <h3 className="text-foreground mb-6">Top Performing Items</h3>
+          <h3 className="text-lg font-medium text-foreground mb-6 leading-snug">Top Performing Items</h3>
           <div className="overflow-x-auto">
             <table className="w-full">
               <thead>
                 <tr className="border-b border-border">
-                  <th className="text-left p-3">Item Name</th>
-                  <th className="text-left p-3">Category</th>
-                  <th className="text-left p-3">Total Uses</th>
-                  <th className="text-left p-3">Revenue</th>
-                  <th className="text-left p-3">Utilization</th>
+                  <th className="text-left p-3 text-xs font-semibold text-muted-foreground uppercase tracking-wider">Item Name</th>
+                  <th className="text-left p-3 text-xs font-semibold text-muted-foreground uppercase tracking-wider">Category</th>
+                  <th className="text-left p-3 text-xs font-semibold text-muted-foreground uppercase tracking-wider">Total Uses</th>
+                  <th className="text-left p-3 text-xs font-semibold text-muted-foreground uppercase tracking-wider">Revenue</th>
+                  <th className="text-left p-3 text-xs font-semibold text-muted-foreground uppercase tracking-wider">Utilization</th>
                 </tr>
               </thead>
               <tbody>
@@ -356,13 +365,13 @@ export function ReportsInsights({ items, onNavigate, selectedItem }: ReportsInsi
                     }`}
                     onClick={() => onNavigate("itemDetail", { item })}
                   >
-                    <td className="p-3 text-foreground">{item.name}</td>
+                    <td className="p-3 text-sm font-normal text-foreground leading-relaxed">{item.name}</td>
                     <td className="p-3">
                       <Badge variant="outline">{item.category}</Badge>
                     </td>
-                    <td className="p-3 text-foreground">{item.usageCount}</td>
-                    <td className="p-3 text-foreground">${item.revenue.toLocaleString()}</td>
-                    <td className="p-3 text-foreground">{item.utilization}%</td>
+                    <td className="p-3 text-sm font-normal text-foreground leading-relaxed">{item.usageCount}</td>
+                    <td className="p-3 text-sm font-normal text-foreground leading-relaxed">${item.revenue.toLocaleString()}</td>
+                    <td className="p-3 text-sm font-normal text-foreground leading-relaxed">{item.utilization}%</td>
                   </tr>
                 ))}
               </tbody>
@@ -376,7 +385,7 @@ export function ReportsInsights({ items, onNavigate, selectedItem }: ReportsInsi
           <Card className="bg-card border-border elevation-sm p-6">
             <div className="flex items-center gap-2 mb-6">
               <AlertTriangle className="w-5 h-5 text-chart-4" />
-              <h3 className="text-foreground">Low Stock Alerts</h3>
+              <h3 className="text-lg font-medium text-foreground leading-snug">Low Stock Alerts</h3>
             </div>
             <div className="space-y-3">
               {lowStockItems.length > 0 ? (
@@ -386,39 +395,39 @@ export function ReportsInsights({ items, onNavigate, selectedItem }: ReportsInsi
                     className="p-4 bg-muted rounded-lg cursor-pointer hover:bg-border transition-colors"
                     onClick={() => onNavigate("itemDetail", { item })}
                   >
-                    <h4 className="text-foreground mb-1">{item.name}</h4>
-                    <p className="text-muted-foreground">
+                    <h4 className="text-base font-medium text-foreground mb-1 leading-normal">{item.name}</h4>
+                    <p className="text-sm font-normal text-muted-foreground leading-relaxed">
                       Only {item.availableQuantity} available
                     </p>
                   </div>
                 ))
               ) : (
-                <p className="text-muted-foreground">No low stock items</p>
+                <p className="text-sm font-normal text-muted-foreground leading-relaxed">No low stock items</p>
               )}
             </div>
           </Card>
 
           {/* Insights Summary */}
           <Card className="bg-card border-border elevation-sm p-6">
-            <h3 className="text-foreground mb-6">Key Insights</h3>
+            <h3 className="text-lg font-medium text-foreground mb-6 leading-snug">Key Insights</h3>
             <div className="space-y-4">
               <div>
-                <h4 className="text-foreground mb-2">Most Used Items</h4>
-                <p className="text-muted-foreground">
+                <h4 className="text-base font-medium text-foreground mb-2 leading-normal">Most Used Items</h4>
+                <p className="text-sm font-normal text-muted-foreground leading-relaxed">
                   {topPerformers[0]?.name} leads with {topPerformers[0]?.usageCount} uses,
                   followed by {topPerformers[1]?.name}.
                 </p>
               </div>
               <div>
-                <h4 className="text-foreground mb-2">Utilization Trends</h4>
-                <p className="text-muted-foreground">
+                <h4 className="text-base font-medium text-foreground mb-2 leading-normal">Utilization Trends</h4>
+                <p className="text-sm font-normal text-muted-foreground leading-relaxed">
                   Overall utilization has increased by 8% this month. Consider expanding
                   your {categoryData[0]?.category} inventory.
                 </p>
               </div>
               <div>
-                <h4 className="text-foreground mb-2">Cost Optimization</h4>
-                <p className="text-muted-foreground">
+                <h4 className="text-base font-medium text-foreground mb-2 leading-normal">Cost Optimization</h4>
+                <p className="text-sm font-normal text-muted-foreground leading-relaxed">
                   High-frequency items are generating strong ROI. Review underutilized
                   items for potential reallocation.
                 </p>

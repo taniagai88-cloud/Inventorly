@@ -15,7 +15,6 @@ import {
   Calendar as CalendarIcon,
   Clock,
   ArrowUpDown,
-  Filter,
   LayoutGrid,
 } from "lucide-react";
 import { Button } from "./ui/button";
@@ -32,7 +31,7 @@ import { motion } from "motion/react";
 import type { AppState, InventoryItem, JobAssignment } from "../types";
 import { mockInventoryItems } from "../mockData";
 import { ImageWithFallback } from "./figma/ImageWithFallback";
-import { getProjectItemIds, isProjectStaged, isStagingUpcoming } from "../utils/projectUtils";
+import { getProjectItemIds, isProjectStaged, isStagingUpcoming, getStagingStatus, getAccurateItemQuantities, calculateInvoiceTotal } from "../utils/projectUtils";
 import { AIAssistant } from "./AIAssistant";
 import "react-grid-layout/css/styles.css";
 import "react-resizable/css/styles.css";
@@ -64,26 +63,26 @@ const DEFAULT_SECTIONS: DashboardSections = {
 
 const DEFAULT_LAYOUTS = {
   lg: [
-    { i: "kpis", x: 0, y: 0, w: 12, h: 4, minW: 6, minH: 3 },
-    { i: "quickActions", x: 0, y: 4, w: 12, h: 2, minW: 6, minH: 2 },
-    { i: "aiAssistant", x: 0, y: 6, w: 12, h: 4, minW: 6, minH: 3 },
-    { i: "projects", x: 0, y: 10, w: 12, h: 6, minW: 6, minH: 4 },
+    { i: "aiAssistant", x: 0, y: 0, w: 12, h: 4, minW: 6, minH: 3 },
+    { i: "projects", x: 0, y: 4, w: 12, h: 6, minW: 6, minH: 4 },
+    { i: "kpis", x: 0, y: 10, w: 12, h: 4, minW: 6, minH: 3 },
+    { i: "quickActions", x: 0, y: 14, w: 12, h: 2, minW: 6, minH: 2 },
     { i: "topItems", x: 0, y: 16, w: 12, h: 6, minW: 6, minH: 5 },
     { i: "insights", x: 0, y: 22, w: 12, h: 3, minW: 6, minH: 3 },
   ],
   md: [
-    { i: "kpis", x: 0, y: 0, w: 10, h: 4, minW: 6, minH: 3 },
-    { i: "quickActions", x: 0, y: 4, w: 10, h: 2, minW: 6, minH: 2 },
-    { i: "aiAssistant", x: 0, y: 6, w: 10, h: 4, minW: 6, minH: 3 },
-    { i: "projects", x: 0, y: 10, w: 10, h: 6, minW: 6, minH: 4 },
+    { i: "aiAssistant", x: 0, y: 0, w: 10, h: 4, minW: 6, minH: 3 },
+    { i: "projects", x: 0, y: 4, w: 10, h: 6, minW: 6, minH: 4 },
+    { i: "kpis", x: 0, y: 10, w: 10, h: 4, minW: 6, minH: 3 },
+    { i: "quickActions", x: 0, y: 14, w: 10, h: 2, minW: 6, minH: 2 },
     { i: "topItems", x: 0, y: 16, w: 10, h: 6, minW: 6, minH: 5 },
     { i: "insights", x: 0, y: 22, w: 10, h: 3, minW: 6, minH: 3 },
   ],
   sm: [
-    { i: "kpis", x: 0, y: 0, w: 6, h: 5, minW: 6, minH: 4 },
-    { i: "quickActions", x: 0, y: 5, w: 6, h: 2, minW: 6, minH: 2 },
-    { i: "aiAssistant", x: 0, y: 7, w: 6, h: 4, minW: 6, minH: 3 },
-    { i: "projects", x: 0, y: 11, w: 6, h: 7, minW: 6, minH: 5 },
+    { i: "aiAssistant", x: 0, y: 0, w: 6, h: 4, minW: 6, minH: 3 },
+    { i: "projects", x: 0, y: 4, w: 6, h: 7, minW: 6, minH: 5 },
+    { i: "kpis", x: 0, y: 11, w: 6, h: 5, minW: 6, minH: 4 },
+    { i: "quickActions", x: 0, y: 16, w: 6, h: 2, minW: 6, minH: 2 },
     { i: "topItems", x: 0, y: 18, w: 6, h: 8, minW: 6, minH: 6 },
     { i: "insights", x: 0, y: 26, w: 6, h: 3, minW: 6, minH: 3 },
   ],
@@ -115,7 +114,12 @@ export function GridDashboard({ onNavigate, jobAssignments }: DashboardProps) {
     const saved = localStorage.getItem("dashboardSections");
     if (saved) {
       try {
-        setVisibleSections(JSON.parse(saved));
+        const parsed = JSON.parse(saved);
+        // Merge with defaults to ensure all properties are defined
+        const merged = { ...DEFAULT_SECTIONS, ...parsed };
+        // Ensure quickActions is always visible
+        merged.quickActions = true;
+        setVisibleSections(merged);
       } catch (e) {
         console.error("Failed to load dashboard preferences", e);
       }
@@ -124,7 +128,22 @@ export function GridDashboard({ onNavigate, jobAssignments }: DashboardProps) {
     const savedLayouts = localStorage.getItem("dashboardLayouts");
     if (savedLayouts) {
       try {
-        setLayouts(JSON.parse(savedLayouts));
+        const parsedLayouts = JSON.parse(savedLayouts);
+        // Ensure quickActions is in all layouts
+        ['lg', 'md', 'sm'].forEach(breakpoint => {
+          if (parsedLayouts[breakpoint]) {
+            const hasQuickActions = parsedLayouts[breakpoint].some((l: any) => l.i === 'quickActions');
+            if (!hasQuickActions) {
+              // Add quickActions layout (position after kpis)
+              const kpisIndex = parsedLayouts[breakpoint].findIndex((l: any) => l.i === 'kpis');
+              const quickActionsLayout = DEFAULT_LAYOUTS[breakpoint as keyof typeof DEFAULT_LAYOUTS].find(l => l.i === 'quickActions');
+              if (quickActionsLayout && kpisIndex >= 0) {
+                parsedLayouts[breakpoint].splice(kpisIndex + 1, 0, quickActionsLayout);
+              }
+            }
+          }
+        });
+        setLayouts(parsedLayouts);
       } catch (e) {
         console.error("Failed to load dashboard layouts", e);
       }
@@ -132,7 +151,14 @@ export function GridDashboard({ onNavigate, jobAssignments }: DashboardProps) {
   }, []);
 
   const updateSectionVisibility = (section: keyof DashboardSections, visible: boolean) => {
+    // Prevent hiding quickActions section
+    if (section === "quickActions" && !visible) {
+      toast.error("Quick Actions section cannot be hidden");
+      return;
+    }
     const newSections = { ...visibleSections, [section]: visible };
+    // Ensure quickActions is always true
+    newSections.quickActions = true;
     setVisibleSections(newSections);
     localStorage.setItem("dashboardSections", JSON.stringify(newSections));
     toast.success(`${section.charAt(0).toUpperCase() + section.slice(1)} ${visible ? 'shown' : 'hidden'}`);
@@ -151,16 +177,23 @@ export function GridDashboard({ onNavigate, jobAssignments }: DashboardProps) {
     localStorage.setItem("dashboardLayouts", JSON.stringify(allLayouts));
   };
 
-  const totalItems = mockInventoryItems.reduce((sum, item) => sum + item.totalQuantity, 0);
-  const itemsInUse = mockInventoryItems.reduce((sum, item) => sum + item.inUseQuantity, 0);
-  const availableItems = mockInventoryItems.reduce((sum, item) => sum + item.availableQuantity, 0);
-  const lowStockItems = mockInventoryItems.filter(item => item.availableQuantity > 0 && item.availableQuantity <= 3).length;
+  // Get active projects
+  const allActiveProjects = jobAssignments.filter(job => job.status === "active");
+  
+  // Calculate accurate quantities based on project assignments
+  const itemsWithAccurateQuantities = mockInventoryItems.map(item => {
+    const accurateQuantities = getAccurateItemQuantities(item, allActiveProjects);
+    return { ...item, ...accurateQuantities };
+  });
 
-  const topItems = [...mockInventoryItems]
+  const totalItems = itemsWithAccurateQuantities.reduce((sum, item) => sum + item.totalQuantity, 0);
+  const itemsInUse = itemsWithAccurateQuantities.reduce((sum, item) => sum + item.inUseQuantity, 0);
+  const availableItems = itemsWithAccurateQuantities.reduce((sum, item) => sum + item.availableQuantity, 0);
+  const lowStockItems = itemsWithAccurateQuantities.filter(item => item.availableQuantity > 0 && item.availableQuantity <= 3).length;
+
+  const topItems = [...itemsWithAccurateQuantities]
     .sort((a, b) => b.usageCount - a.usageCount)
     .slice(0, 5);
-
-  const allActiveProjects = jobAssignments.filter(job => job.status === "active");
   const stagedProjectsCount = allActiveProjects.filter(job => isProjectStaged(job)).length;
 
   const filteredProjects = allActiveProjects
@@ -476,7 +509,10 @@ export function GridDashboard({ onNavigate, jobAssignments }: DashboardProps) {
                   </div>
                 )}
                 <div className="flex flex-col sm:flex-row h-full items-center justify-center" style={{ gap: 'var(--spacing-4)' }}>
-                  <Button onClick={() => onNavigate("addItem")} className="flex-1 w-full">
+                  <Button 
+                    onClick={() => onNavigate("addItem")} 
+                    className="flex-1 w-full bg-primary text-white hover:!bg-secondary transition-colors"
+                  >
                     <Plus className="w-4 h-4" style={{ marginRight: 'var(--spacing-2)' }} />
                     Add Item
                   </Button>
@@ -523,20 +559,33 @@ export function GridDashboard({ onNavigate, jobAssignments }: DashboardProps) {
                     </div>
                     <p className="text-muted-foreground">Track staging timelines</p>
                   </div>
-                  <div className="flex" style={{ gap: 'var(--spacing-2)' }}>
-                    <DropdownMenu>
-                      <DropdownMenuTrigger asChild>
-                        <Button variant="outline" size="sm" style={{ gap: 'var(--spacing-2)' }}>
-                          <Filter className="w-4 h-4" />
-                          {projectFilter === "all" ? "All" : projectFilter}
-                        </Button>
-                      </DropdownMenuTrigger>
-                      <DropdownMenuContent align="end">
-                        <DropdownMenuItem onClick={() => setProjectFilter("all")}>All</DropdownMenuItem>
-                        <DropdownMenuItem onClick={() => setProjectFilter("staged")}>Staged</DropdownMenuItem>
-                        <DropdownMenuItem onClick={() => setProjectFilter("upcoming")}>Upcoming</DropdownMenuItem>
-                      </DropdownMenuContent>
-                    </DropdownMenu>
+                  <div className="flex items-center" style={{ gap: 'var(--spacing-2)' }}>
+                    <Button 
+                      onClick={() => onNavigate("assignToJob")} 
+                      className="bg-primary text-primary-foreground hover:bg-primary/90"
+                      size="sm"
+                    >
+                      <FolderPlus className="w-4 h-4 mr-2" />
+                      Create Project
+                    </Button>
+                    <div className="ml-auto">
+                      <DropdownMenu>
+                        <DropdownMenuTrigger asChild>
+                          <Button variant="outline" size="sm" style={{ gap: 'var(--spacing-2)' }}>
+                            <ArrowUpDown className="w-4 h-4" />
+                            {sortOrder === "earliest" ? "Earliest" : "Latest"}
+                          </Button>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent align="end">
+                          <DropdownMenuItem onClick={() => setSortOrder("earliest")}>
+                            Earliest First
+                          </DropdownMenuItem>
+                          <DropdownMenuItem onClick={() => setSortOrder("latest")}>
+                            Latest First
+                          </DropdownMenuItem>
+                        </DropdownMenuContent>
+                      </DropdownMenu>
+                    </div>
                   </div>
                 </div>
 
@@ -545,6 +594,7 @@ export function GridDashboard({ onNavigate, jobAssignments }: DashboardProps) {
                     const projectItems = getProjectItemIds(job);
                     const daysLeft = getDaysLeft(job.stagingDate);
                     const isUpcoming = isStagingUpcoming(job.stagingDate);
+                    const stagingStatus = getStagingStatus(job);
                     
                     return (
                       <div
@@ -555,14 +605,14 @@ export function GridDashboard({ onNavigate, jobAssignments }: DashboardProps) {
                       >
                         <div className="flex items-start justify-between" style={{ marginBottom: 'var(--spacing-3)' }}>
                           <div className="flex-1">
-                            <h4 className="text-foreground group-hover:text-white transition-colors" style={{ marginBottom: 'var(--spacing-1)' }}>{job.jobName}</h4>
+                            <h4 className="text-foreground group-hover:text-white transition-colors" style={{ marginBottom: 'var(--spacing-1)' }}>{job.clientName || job.shortAddress || job.jobLocation}</h4>
                             <div className="flex items-center text-muted-foreground group-hover:text-white transition-colors" style={{ gap: 'var(--spacing-1)' }}>
                               <MapPin className="w-3 h-3" />
                               <p>{job.jobLocation}</p>
                             </div>
                           </div>
-                          <Badge variant={job.stagingStatus === "staged" ? "default" : "secondary"}>
-                            {job.stagingStatus === "staged" ? "Staged" : "Upcoming"}
+                          <Badge variant={stagingStatus === "staged" ? "default" : "secondary"}>
+                            {stagingStatus === "staged" ? "Staged" : stagingStatus === "upcoming" ? "Upcoming" : "Pending"}
                           </Badge>
                         </div>
 
@@ -579,7 +629,19 @@ export function GridDashboard({ onNavigate, jobAssignments }: DashboardProps) {
                           </div>
                         )}
 
-                        <p className="text-muted-foreground group-hover:text-white transition-colors">{projectItems.length} items</p>
+                        <div className="space-y-1">
+                          <p className="text-muted-foreground group-hover:text-white transition-colors">{projectItems.length} items</p>
+                          {job.roomPricing && Object.keys(job.roomPricing).length > 0 && (
+                            <p className="text-foreground font-medium group-hover:text-white transition-colors" style={{ fontSize: 'var(--font-size-sm)' }}>
+                              {new Intl.NumberFormat('en-US', {
+                                style: 'currency',
+                                currency: 'USD',
+                                minimumFractionDigits: 2,
+                                maximumFractionDigits: 2,
+                              }).format(calculateInvoiceTotal(job))}
+                            </p>
+                          )}
+                        </div>
                       </div>
                     );
                   })}

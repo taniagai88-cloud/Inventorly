@@ -1,16 +1,16 @@
 import type { InventoryItem, JobAssignment, UsageHistoryEntry } from "./types";
-import chairImage from "figma:asset/bf3e3b2adbbf51a3685ccb430cd7f99f62425330.png";
-import rugImage from "figma:asset/f5a2d9644fffe5e34bfd23da01cfaaa2b7ee4a7a.png";
-import pillowImage from "figma:asset/76b3695f8fd53782b957f65619ca621ff4a6454e.png";
-import platformBedImage from "figma:asset/a76222775f9255aefbcfeeda97001c3a2820fb74.png";
-import canopyBedImage from "figma:asset/1c9a524adaf9b26f3aa98a6f97f0fdfa9b9f19d5.png";
-import wovemRugImage from "figma:asset/2c489e62b99b8b4f0d5e5eca8520aa88995ac72b.png";
-import barCartImage from "figma:asset/7c88476d06e9bfb8e21678c9b9ce829a2c9129da.png";
-import armchairImage from "figma:asset/c3b1c63e16e2d237b57944514c694ba376985843.png";
-import consoleTableImage from "figma:asset/67f78ca9032fd1a83ab0f0b38575245e8a147f0c.png";
-import oliveTreeImage from "figma:asset/c47166bb3e07ff395671cb27cc14e05ec42d5841.png";
-import whiteOfficeChairImage from "figma:asset/99b2052cbb92f7d5d277ffd1cff1035b0102207f.png";
-import brassFloorLampImage from "figma:asset/690d82d765bc87a642e654c45ff62e78d98609e6.png";
+import chairImage from "./assets/bf3e3b2adbbf51a3685ccb430cd7f99f62425330.png";
+import rugImage from "./assets/f5a2d9644fffe5e34bfd23da01cfaaa2b7ee4a7a.png";
+import pillowImage from "./assets/76b3695f8fd53782b957f65619ca621ff4a6454e.png";
+import platformBedImage from "./assets/a76222775f9255aefbcfeeda97001c3a2820fb74.png";
+import canopyBedImage from "./assets/1c9a524adaf9b26f3aa98a6f97f0fdfa9b9f19d5.png";
+import wovemRugImage from "./assets/2c489e62b99b8b4f0d5e5eca8520aa88995ac72b.png";
+import barCartImage from "./assets/7c88476d06e9bfb8e21678c9b9ce829a2c9129da.png";
+import armchairImage from "./assets/c3b1c63e16e2d237b57944514c694ba376985843.png";
+import consoleTableImage from "./assets/67f78ca9032fd1a83ab0f0b38575245e8a147f0c.png";
+import oliveTreeImage from "./assets/c47166bb3e07ff395671cb27cc14e05ec42d5841.png";
+import whiteOfficeChairImage from "./assets/99b2052cbb92f7d5d277ffd1cff1035b0102207f.png";
+import brassFloorLampImage from "./assets/690d82d765bc87a642e654c45ff62e78d98609e6.png";
 
 export const mockInventoryItems: InventoryItem[] = [
   {
@@ -206,8 +206,7 @@ export const mockJobAssignments: JobAssignment[] = [
   {
     id: "a2",
     itemId: "2",
-    jobName: "Corporate Lounge Setup",
-    jobLocation: "Downtown Office",
+    jobLocation: "3315 Old Creek Rd, Gilroy",
     startDate: getRelativeDate(-30),
     endDate: getRelativeDate(15),
     quantity: 12,
@@ -224,8 +223,7 @@ export const mockJobAssignments: JobAssignment[] = [
   {
     id: "a3",
     itemId: "4",
-    jobName: "Interior Design Showcase",
-    jobLocation: "Design Center",
+    jobLocation: "1515 Pine Lake Rd, Sammamish, WA",
     startDate: getRelativeDate(-28),
     endDate: getRelativeDate(17),
     quantity: 8,
@@ -242,8 +240,7 @@ export const mockJobAssignments: JobAssignment[] = [
   {
     id: "a4",
     itemId: "16",
-    jobName: "Boutique Hotel Renovation",
-    jobLocation: "Riverside Hotel - Suite 205",
+    jobLocation: "1004 Pine Crest Ave, Issaquah",
     startDate: getRelativeDate(-5),
     endDate: getRelativeDate(40),
     quantity: 15,
@@ -260,8 +257,7 @@ export const mockJobAssignments: JobAssignment[] = [
   {
     id: "a5",
     itemId: "20",
-    jobName: "Luxury Penthouse Staging",
-    jobLocation: "Harbor View Tower - Unit 4501",
+    jobLocation: "2200 Harbor View Dr, Seattle, WA",
     startDate: getRelativeDate(10),
     endDate: getRelativeDate(40),
     quantity: 2,
@@ -278,8 +274,7 @@ export const mockJobAssignments: JobAssignment[] = [
   {
     id: "a6",
     itemId: "21",
-    jobName: "Executive Conference Room",
-    jobLocation: "Tech Plaza - 12th Floor",
+    jobLocation: "5500 Tech Plaza Blvd, Redmond, WA",
     startDate: getRelativeDate(15),
     endDate: getRelativeDate(50),
     quantity: 8,
@@ -301,7 +296,6 @@ export const mockUsageHistory: UsageHistoryEntry[] = [
     itemId: "2",
     date: getRelativeDate(-15),
     action: "assigned",
-    jobName: "Corporate Lounge Setup",
     user: "John Doe",
     quantity: 12,
   },
@@ -310,7 +304,7 @@ export const mockUsageHistory: UsageHistoryEntry[] = [
     itemId: "4",
     date: getRelativeDate(-12),
     action: "assigned",
-    jobName: "Interior Design Showcase",
+    jobLocation: "1515 Pine Lake Rd, Sammamish, WA",
     user: "Jane Smith",
     quantity: 8,
   },

@@ -7,6 +7,8 @@ import { AppHeader } from "./components/AppHeader";
 import { GridDashboard } from "./components/GridDashboard";
 import { AddItem } from "./components/AddItem";
 import { BulkUpload } from "./components/BulkUpload";
+import { MultiItemImageUpload } from "./components/MultiItemImageUpload";
+import { ImageGallery } from "./components/ImageGallery";
 import { InventoryLibrary } from "./components/InventoryLibrary";
 import { InUse } from "./components/InUse";
 import { ItemDetail } from "./components/ItemDetail";
@@ -15,6 +17,7 @@ import { ReportsInsights } from "./components/ReportsInsights";
 import { ProjectDetail } from "./components/ProjectDetail";
 import { AllProjects } from "./components/AllProjects";
 import { Settings } from "./components/Settings";
+import { toast } from "sonner@2.0.3";
 import type { AppState, AuthMode, UserData, InventoryItem, JobAssignment } from "./types";
 import { mockInventoryItems, mockJobAssignments } from "./mockData";
 
@@ -31,6 +34,8 @@ export default function App() {
   const [selectedReportItem, setSelectedReportItem] = useState<InventoryItem | null>(null);
   const [selectedProject, setSelectedProject] = useState<JobAssignment | null>(null);
   const [jobAssignments, setJobAssignments] = useState<JobAssignment[]>(mockJobAssignments);
+  const [multiItemUploadData, setMultiItemUploadData] = useState<any>(null);
+  const [previousState, setPreviousState] = useState<AppState | null>(null);
 
   const handleSendCode = (mode: AuthMode, data: Partial<UserData>) => {
     setAuthMode(mode);
@@ -60,6 +65,14 @@ export default function App() {
   const [selectedProjectId, setSelectedProjectId] = useState<string | undefined>(undefined);
 
   const handleNavigate = (state: AppState, data?: any) => {
+    // Track previous state when navigating to addItem
+    // Only update previousState if we're not already on addItem (to preserve the original source)
+    if (state === "addItem" && appState !== "addItem") {
+      // Use current appState as previous, but fallback to "dashboard" if appState is invalid
+      const validPreviousState = appState && appState !== "addItem" ? appState : "dashboard";
+      setPreviousState(validPreviousState);
+    }
+    
     if (state === "itemDetail" && data?.item) {
       setSelectedItem(data.item);
     } else if (state === "assignToJob" && data?.item) {
@@ -79,12 +92,24 @@ export default function App() {
       setSelectedReportItem(null);
     } else if (state === "projectDetail" && data?.project) {
       setSelectedProject(data.project);
+    } else if (state === "multiItemUpload") {
+      setMultiItemUploadData(data || null);
     }
     setAppState(state);
   };
 
   const handleSaveItem = (item: InventoryItem) => {
     setInventoryItems((prev) => [...prev, item]);
+  };
+
+  const handleUpdateItem = (updatedItem: InventoryItem) => {
+    setInventoryItems((prev) =>
+      prev.map((item) => (item.id === updatedItem.id ? updatedItem : item))
+    );
+    // Update selected item if it's the one being updated
+    if (selectedItem && selectedItem.id === updatedItem.id) {
+      setSelectedItem(updatedItem);
+    }
   };
 
   const handleDeleteItem = (itemId: string) => {
@@ -124,6 +149,8 @@ export default function App() {
     appState === "allProjects" ||
     appState === "addItem" ||
     appState === "bulkUpload" ||
+    appState === "multiItemUpload" ||
+    appState === "imageGallery" ||
     appState === "itemDetail" ||
     appState === "assignToJob" ||
     appState === "settings";
@@ -161,11 +188,34 @@ export default function App() {
       )}
 
       {appState === "addItem" && (
-        <AddItem onNavigate={handleNavigate} onSave={handleSaveItem} />
+        <AddItem 
+          onNavigate={handleNavigate} 
+          onSave={handleSaveItem}
+          previousState={previousState || "dashboard"}
+        />
       )}
 
       {appState === "bulkUpload" && (
         <BulkUpload onNavigate={handleNavigate} />
+      )}
+
+      {appState === "multiItemUpload" && (
+        <MultiItemImageUpload 
+          onNavigate={handleNavigate} 
+          onSave={handleSaveItem}
+          autoLoadDiningSet={multiItemUploadData?.autoLoadDiningSet || false}
+        />
+      )}
+
+      {appState === "imageGallery" && (
+        <ImageGallery 
+          onNavigate={handleNavigate}
+          onSelectImage={(imagePath, imageSrc) => {
+            // Store selected image info for use in multi-item upload
+            localStorage.setItem("selectedDiningSetImage", JSON.stringify({ path: imagePath, src: imageSrc }));
+            toast.success(`Selected image: ${imagePath}`);
+          }}
+        />
       )}
 
       {appState === "library" && (
@@ -174,8 +224,6 @@ export default function App() {
           onNavigate={handleNavigate}
           initialFilter={libraryFilter}
           jobAssignments={jobAssignments}
-          selectedProjectId={selectedProjectId}
-          onUpdateJob={handleUpdateJob}
         />
       )}
 
@@ -183,6 +231,7 @@ export default function App() {
         <InUse
           items={inventoryItems}
           onNavigate={handleNavigate}
+          jobAssignments={jobAssignments}
         />
       )}
 
@@ -191,6 +240,8 @@ export default function App() {
           item={selectedItem}
           onNavigate={handleNavigate}
           onDelete={handleDeleteItem}
+          onUpdateItem={handleUpdateItem}
+          jobAssignments={jobAssignments}
         />
       )}
 
@@ -199,6 +250,8 @@ export default function App() {
           item={selectedItem || undefined}
           onNavigate={handleNavigate}
           onCreateJob={handleCreateJob}
+          jobAssignments={jobAssignments}
+          onUpdateJob={handleUpdateJob}
         />
       )}
 
@@ -207,6 +260,7 @@ export default function App() {
           items={inventoryItems}
           onNavigate={handleNavigate}
           selectedItem={selectedReportItem}
+          jobAssignments={jobAssignments}
         />
       )}
 

@@ -14,7 +14,6 @@ import {
   Calendar as CalendarIcon,
   Clock,
   ArrowUpDown,
-  Filter,
 } from "lucide-react";
 import { Button } from "./ui/button";
 import { Card } from "./ui/card";
@@ -23,7 +22,7 @@ import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigge
 import { Tabs, TabsList, TabsTrigger } from "./ui/tabs";
 import { format } from "date-fns";
 import { ImageWithFallback } from "./figma/ImageWithFallback";
-import { getProjectItemIds, isProjectStaged, isStagingUpcoming } from "../utils/projectUtils";
+import { getProjectItemIds, isProjectStaged, isStagingUpcoming, getStagingStatus, calculateInvoiceTotal } from "../utils/projectUtils";
 import { AIAssistant } from "./AIAssistant";
 import type { AppState, InventoryItem, JobAssignment } from "../types";
 
@@ -75,8 +74,8 @@ export function KPISection({ kpis, onNavigate }: SectionProps) {
                 </span>
               </div>
             </div>
-            <h3 className="text-foreground mb-1">{kpi.value}</h3>
-            <p className="text-muted-foreground">{kpi.label}</p>
+            <h3 className="text-lg font-medium text-foreground mb-1 leading-snug">{kpi.value}</h3>
+            <p className="text-sm font-normal text-muted-foreground leading-relaxed">{kpi.label}</p>
           </Card>
         </motion.div>
       ))}
@@ -92,7 +91,10 @@ export function QuickActionsSection({ onNavigate }: SectionProps) {
       transition={{ delay: 0.4 }}
       className="flex flex-col sm:flex-row gap-4 mb-8"
     >
-      <Button onClick={() => onNavigate("addItem")} className="flex-1">
+      <Button 
+        onClick={() => onNavigate("addItem")} 
+        className="flex-1 bg-primary text-white hover:!bg-secondary transition-colors"
+      >
         <Plus className="w-4 h-4 mr-2" />
         Add Item
       </Button>
@@ -144,58 +146,49 @@ export function ProjectsSection({
       <div className="flex items-start justify-between mb-4">
         <div>
           <div className="flex items-center gap-2 mb-1">
-            <h2 className="text-foreground">Projects</h2>
+            <h2 className="text-xl font-semibold text-foreground leading-snug">Projects</h2>
           </div>
           <p className="text-muted-foreground">Track staging timelines and item allocation</p>
         </div>
-        <div className="flex gap-2">
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <Button variant="outline" size="sm" className="gap-2">
-                <Filter className="w-4 h-4" />
-                {projectFilter === "all" ? "All" : projectFilter === "staged" ? "Staged" : "Upcoming"}
-              </Button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="end">
-              <DropdownMenuItem onClick={() => setProjectFilter?.("all")}>
-                All Projects
-              </DropdownMenuItem>
-              <DropdownMenuItem onClick={() => setProjectFilter?.("staged")}>
-                Staged Only
-              </DropdownMenuItem>
-              <DropdownMenuItem onClick={() => setProjectFilter?.("upcoming")}>
-                Upcoming Only
-              </DropdownMenuItem>
-            </DropdownMenuContent>
-          </DropdownMenu>
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <Button variant="outline" size="sm" className="gap-2">
-                <ArrowUpDown className="w-4 h-4" />
-                {sortOrder === "earliest" ? "Earliest" : "Latest"}
-              </Button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="end">
-              <DropdownMenuItem onClick={() => setSortOrder?.("earliest")}>
-                Earliest First
-              </DropdownMenuItem>
-              <DropdownMenuItem onClick={() => setSortOrder?.("latest")}>
-                Latest First
-              </DropdownMenuItem>
-            </DropdownMenuContent>
-          </DropdownMenu>
+        <div className="flex gap-2 items-center">
+          <Button 
+            onClick={() => onNavigate("assignToJob")} 
+            className="bg-primary text-primary-foreground hover:bg-primary/90"
+          >
+            <FolderPlus className="w-4 h-4 mr-2" />
+            Create Project
+          </Button>
+          <div className="ml-auto">
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button variant="outline" size="sm" className="gap-2">
+                  <ArrowUpDown className="w-4 h-4" />
+                  {sortOrder === "earliest" ? "Earliest" : "Latest"}
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end">
+                <DropdownMenuItem onClick={() => setSortOrder?.("earliest")}>
+                  Earliest First
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={() => setSortOrder?.("latest")}>
+                  Latest First
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
+          </div>
         </div>
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         {activeProjects?.map((job, index) => {
-          const projectItems = getProjectItemIds(job.items);
+          const projectItems = getProjectItemIds(job);
           const allItems = projectItems
             .map(id => items?.find(item => item.id === id))
             .filter(Boolean) as InventoryItem[];
           
           const daysLeft = getDaysLeft?.(job.stagingDate);
           const isUpcoming = isStagingUpcoming(job.stagingDate);
+          const stagingStatus = getStagingStatus(job);
           
           return (
             <motion.div
@@ -210,14 +203,14 @@ export function ProjectsSection({
               >
                 <div className="flex items-start justify-between mb-4">
                   <div>
-                    <h3 className="text-foreground mb-1 group-hover:text-white transition-colors">{job.jobName}</h3>
+                    <h3 className="text-lg font-medium text-foreground mb-1 leading-snug group-hover:text-white transition-colors">{job.clientName || job.shortAddress || job.jobLocation}</h3>
                     <div className="flex items-center gap-1 text-muted-foreground group-hover:text-white transition-colors">
                       <MapPin className="w-3 h-3" />
                       <p>{job.jobLocation}</p>
                     </div>
                   </div>
-                  <Badge variant={job.stagingStatus === "staged" ? "default" : "secondary"}>
-                    {job.stagingStatus === "staged" ? "Staged" : "Upcoming"}
+                  <Badge variant={stagingStatus === "staged" ? "default" : "secondary"}>
+                    {stagingStatus === "staged" ? "Staged" : stagingStatus === "upcoming" ? "Upcoming" : "Pending"}
                   </Badge>
                 </div>
 
@@ -243,11 +236,36 @@ export function ProjectsSection({
                     <span>Items</span>
                     <span>{projectItems.length} assigned</span>
                   </div>
+                  {job.roomPricing && Object.keys(job.roomPricing).length > 0 && (
+                    <div className="flex items-center justify-between group-hover:text-white transition-colors">
+                      <span className="text-muted-foreground">Total Amount</span>
+                      <span className="text-foreground font-medium">
+                        {new Intl.NumberFormat('en-US', {
+                          style: 'currency',
+                          currency: 'USD',
+                          minimumFractionDigits: 2,
+                          maximumFractionDigits: 2,
+                        }).format(calculateInvoiceTotal(job))}
+                      </span>
+                    </div>
+                  )}
                   {allItems.length > 0 && (
                     <p className="text-muted-foreground">
                       Items will be shown here once they've been added
                     </p>
                   )}
+                </div>
+                
+                <div className="mt-4 pt-4 border-t border-border">
+                  <Button
+                    className="w-full bg-primary text-primary-foreground hover:bg-primary/90"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      onNavigate("library", { selectedProjectId: job.id });
+                    }}
+                  >
+                    {isUpcoming ? "Add Inventory" : "Add Items"}
+                  </Button>
                 </div>
               </Card>
             </motion.div>
@@ -258,7 +276,7 @@ export function ProjectsSection({
       {activeProjects?.length === 0 && (
         <Card className="bg-card border-border elevation-sm p-8 text-center mt-6">
           <FolderPlus className="w-12 h-12 text-muted-foreground mx-auto mb-4" />
-          <h4 className="text-foreground mb-2">No Projects</h4>
+          <h4 className="text-base font-medium text-foreground mb-2 leading-normal">No Projects</h4>
           <p className="text-muted-foreground mb-4">
             {projectFilter !== "all" 
               ? `No ${projectFilter} projects found. Try changing the filter.`
@@ -299,7 +317,7 @@ export function TopItemsSection({
       className="mb-8"
     >
       <div className="flex items-center justify-between mb-4">
-        <h2 className="text-foreground">Top 5 Most-Used Items</h2>
+        <h2 className="text-xl font-semibold text-foreground leading-snug">Top 5 Most-Used Items</h2>
         <div className="flex gap-2">
           <button
             onClick={() => handleScroll?.("left")}
@@ -346,8 +364,8 @@ export function TopItemsSection({
                   {item.usageCount} uses
                 </Badge>
               </div>
-              <h4 className="text-foreground mb-2">{item.name}</h4>
-              <p className="text-muted-foreground mb-3">{item.category}</p>
+              <h4 className="text-base font-medium text-foreground mb-2 leading-normal">{item.name}</h4>
+              <p className="text-sm font-normal text-muted-foreground mb-3 leading-relaxed">{item.category}</p>
               <Badge variant={status.variant}>{status.label}</Badge>
             </Card>
           );
@@ -367,9 +385,9 @@ export function InsightsSection({ onNavigate }: SectionProps) {
       <Card className="bg-card border-border elevation-sm p-6">
         <div className="flex items-center gap-2 mb-4">
           <TrendingUp className="w-5 h-5 text-primary" />
-          <h3 className="text-foreground">Insights</h3>
+          <h3 className="text-lg font-medium text-foreground leading-snug">Insights</h3>
         </div>
-        <h4 className="text-foreground mb-3">Usage Trends</h4>
+        <h4 className="text-base font-medium text-foreground mb-3 leading-normal">Usage Trends</h4>
         <p className="text-muted-foreground mb-4">
           Your inventory utilization has increased by 8% this month. Professional Display Screens
           and Modern Lounge Chairs are your most-used items. Consider increasing stock for items

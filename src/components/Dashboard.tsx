@@ -41,7 +41,7 @@ import { format } from "date-fns";
 import type { AppState, InventoryItem, JobAssignment } from "../types";
 import { mockInventoryItems, mockJobAssignments } from "../mockData";
 import { ImageWithFallback } from "./figma/ImageWithFallback";
-import { getProjectItemIds, isProjectStaged, isStagingUpcoming } from "../utils/projectUtils";
+import { getProjectItemIds, isProjectStaged, isStagingUpcoming, getStagingStatus, getAccurateItemQuantities, calculateInvoiceTotal } from "../utils/projectUtils";
 import { AIAssistant } from "./AIAssistant";
 import { DraggableSection } from "./DraggableSection";
 
@@ -71,10 +71,10 @@ const DEFAULT_SECTIONS: DashboardSections = {
 type SectionKey = keyof DashboardSections;
 
 const DEFAULT_SECTION_ORDER: SectionKey[] = [
-  "kpis",
-  "quickActions",
   "aiAssistant",
   "projects",
+  "kpis",
+  "quickActions",
   "topItems",
   "insights",
 ];
@@ -95,7 +95,6 @@ export function Dashboard({ onNavigate, jobAssignments }: DashboardProps) {
   const [scrollPosition, setScrollPosition] = useState(0);
   const [selectedItem, setSelectedItem] = useState<InventoryItem | null>(null);
   const [assignDialogOpen, setAssignDialogOpen] = useState(false);
-  const [jobName, setJobName] = useState("");
   const [jobLocation, setJobLocation] = useState("");
   const [stagingDate, setStagingDate] = useState<Date>();
   const [sortOrder, setSortOrder] = useState<"earliest" | "latest">("earliest");
@@ -111,7 +110,12 @@ export function Dashboard({ onNavigate, jobAssignments }: DashboardProps) {
     const saved = localStorage.getItem("dashboardSections");
     if (saved) {
       try {
-        setVisibleSections(JSON.parse(saved));
+        const parsed = JSON.parse(saved);
+        // Merge with defaults to ensure all properties are defined
+        const merged = { ...DEFAULT_SECTIONS, ...parsed };
+        // Ensure quickActions is always visible
+        merged.quickActions = true;
+        setVisibleSections(merged);
       } catch (e) {
         console.error("Failed to load dashboard preferences", e);
       }
@@ -120,7 +124,12 @@ export function Dashboard({ onNavigate, jobAssignments }: DashboardProps) {
     const savedOrder = localStorage.getItem("dashboardSectionOrder");
     if (savedOrder) {
       try {
-        setSectionOrder(JSON.parse(savedOrder));
+        const parsedOrder = JSON.parse(savedOrder);
+        // Ensure quickActions is always in the order
+        if (!parsedOrder.includes("quickActions")) {
+          parsedOrder.unshift("quickActions");
+        }
+        setSectionOrder(parsedOrder);
       } catch (e) {
         console.error("Failed to load dashboard order", e);
       }
@@ -129,7 +138,14 @@ export function Dashboard({ onNavigate, jobAssignments }: DashboardProps) {
 
   // Save preferences to localStorage
   const updateSectionVisibility = (section: keyof DashboardSections, visible: boolean) => {
+    // Prevent hiding quickActions section
+    if (section === "quickActions" && !visible) {
+      toast.error("Quick Actions section cannot be hidden");
+      return;
+    }
     const newSections = { ...visibleSections, [section]: visible };
+    // Ensure quickActions is always true
+    newSections.quickActions = true;
     setVisibleSections(newSections);
     localStorage.setItem("dashboardSections", JSON.stringify(newSections));
     toast.success(`${section.charAt(0).toUpperCase() + section.slice(1)} ${visible ? 'shown' : 'hidden'}`);
@@ -153,20 +169,26 @@ export function Dashboard({ onNavigate, jobAssignments }: DashboardProps) {
     });
   }, []);
 
-  const totalItems = mockInventoryItems.reduce((sum, item) => sum + item.totalQuantity, 0);
-  const itemsInUse = mockInventoryItems.reduce((sum, item) => sum + item.inUseQuantity, 0);
-  const totalValue = mockInventoryItems.reduce((sum, item) => sum + item.purchaseCost * item.totalQuantity, 0);
+  // Get active projects with filtering
+  const allActiveProjects = jobAssignments.filter(job => job.status === "active");
+  
+  // Calculate accurate quantities based on project assignments
+  const itemsWithAccurateQuantities = mockInventoryItems.map(item => {
+    const accurateQuantities = getAccurateItemQuantities(item, allActiveProjects);
+    return { ...item, ...accurateQuantities };
+  });
+
+  const totalItems = itemsWithAccurateQuantities.reduce((sum, item) => sum + item.totalQuantity, 0);
+  const itemsInUse = itemsWithAccurateQuantities.reduce((sum, item) => sum + item.inUseQuantity, 0);
+  const totalValue = itemsWithAccurateQuantities.reduce((sum, item) => sum + item.purchaseCost * item.totalQuantity, 0);
   const avgUtilization = Math.round((itemsInUse / totalItems) * 100);
 
-  const topItems = [...mockInventoryItems]
+  const topItems = [...itemsWithAccurateQuantities]
     .sort((a, b) => b.usageCount - a.usageCount)
     .slice(0, 5);
 
-  const availableItems = mockInventoryItems.reduce((sum, item) => sum + item.availableQuantity, 0);
-  const lowStockItems = mockInventoryItems.filter(item => item.availableQuantity > 0 && item.availableQuantity <= 3).length;
-
-  // Get active projects with filtering
-  const allActiveProjects = jobAssignments.filter(job => job.status === "active");
+  const availableItems = itemsWithAccurateQuantities.reduce((sum, item) => sum + item.availableQuantity, 0);
+  const lowStockItems = itemsWithAccurateQuantities.filter(item => item.availableQuantity > 0 && item.availableQuantity <= 3).length;
   const stagedProjectsCount = allActiveProjects.filter(job => isProjectStaged(job)).length;
   
   const filteredProjects = allActiveProjects
@@ -287,12 +309,11 @@ export function Dashboard({ onNavigate, jobAssignments }: DashboardProps) {
   };
 
   const handleAssign = () => {
-    if (!selectedItem || !jobName || !jobLocation || !stagingDate) return;
+    if (!selectedItem || !jobLocation || !stagingDate) return;
 
-    toast.success(`${selectedItem.name} assigned to ${jobName}`);
+    toast.success(`${selectedItem.name} assigned to ${jobLocation}`);
     setAssignDialogOpen(false);
     setSelectedItem(null);
-    setJobName("");
     setJobLocation("");
     setStagingDate(undefined);
   };
@@ -455,7 +476,7 @@ export function Dashboard({ onNavigate, jobAssignments }: DashboardProps) {
         className="mb-8"
       >
         <div className="flex items-center justify-between mb-4">
-          <h2 className="text-foreground">Top 5 Most-Used Items</h2>
+          <h2 className="text-xl font-semibold text-foreground leading-snug">Top 5 Most-Used Items</h2>
           <div className="flex gap-2">
             <button
               onClick={() => handleScroll("left")}
@@ -502,15 +523,15 @@ export function Dashboard({ onNavigate, jobAssignments }: DashboardProps) {
                     {item.usageCount} uses
                   </Badge>
                 </div>
-                <h4 className="text-foreground mb-2">{item.name}</h4>
-                <p className="text-muted-foreground mb-3">{item.category}</p>
+                <h4 className="text-base font-medium text-foreground mb-2 leading-normal">{item.name}</h4>
+                <p className="text-sm font-normal text-muted-foreground mb-3 leading-relaxed">{item.category}</p>
                 <Badge variant={status.variant}>{status.label}</Badge>
               </Card>
             );
           })}
         </div>
       </motion.div>
-      )}
+    )}
 
       {/* Insights Card */}
       {visibleSections.insights && (
@@ -519,17 +540,17 @@ export function Dashboard({ onNavigate, jobAssignments }: DashboardProps) {
         animate={{ opacity: 1, y: 0 }}
         transition={{ delay: 0.7 }}
       >
-        <Card className="bg-card border-border elevation-sm p-6">
-          <div className="flex items-center gap-2 mb-4">
-            <TrendingUp className="w-5 h-5 text-primary" />
-            <h3 className="text-foreground">Insights</h3>
-          </div>
-          <h4 className="text-foreground mb-3">Usage Trends</h4>
-          <p className="text-muted-foreground mb-4">
-            Your inventory utilization has increased by 8% this month. Professional Display Screens
-            and Modern Lounge Chairs are your most-used items. Consider increasing stock for items
-            frequently showing low availability.
-          </p>
+                  <Card className="bg-card border-border elevation-sm p-6">
+                    <div className="flex items-center gap-2 mb-4">
+                      <TrendingUp className="w-5 h-5 text-primary" />
+                      <h3 className="text-lg font-medium text-foreground leading-snug">Insights</h3>
+                    </div>
+                    <h4 className="text-base font-medium text-foreground mb-3 leading-normal">Usage Trends</h4>
+                    <p className="text-sm font-normal text-muted-foreground mb-4 leading-relaxed">
+                      Your inventory utilization has increased by 8% this month. Professional Display Screens
+                      and Modern Lounge Chairs are your most-used items. Consider increasing stock for items
+                      frequently showing low availability.
+                    </p>
           <button
             onClick={() => onNavigate("reports")}
             className="text-primary hover:underline"
@@ -578,8 +599,8 @@ export function Dashboard({ onNavigate, jobAssignments }: DashboardProps) {
                             </span>
                           </div>
                         </div>
-                        <h3 className="text-foreground mb-1">{kpi.value}</h3>
-                        <p className="text-muted-foreground">{kpi.label}</p>
+                        <h3 className="text-lg font-medium text-foreground mb-1 leading-snug">{kpi.value}</h3>
+                        <p className="text-sm font-normal text-muted-foreground leading-relaxed">{kpi.label}</p>
                       </Card>
                     </motion.div>
                   ))}
@@ -593,7 +614,10 @@ export function Dashboard({ onNavigate, jobAssignments }: DashboardProps) {
                   transition={{ delay: 0.4 }}
                   className="flex flex-col sm:flex-row gap-4 mb-8"
                 >
-                  <Button onClick={() => onNavigate("addItem")} className="flex-1">
+                  <Button 
+                    onClick={() => onNavigate("addItem")} 
+                    className="flex-1 bg-primary text-white hover:!bg-secondary transition-colors"
+                  >
                     <Plus className="w-4 h-4 mr-2" />
                     Add Item
                   </Button>
@@ -629,7 +653,7 @@ export function Dashboard({ onNavigate, jobAssignments }: DashboardProps) {
                   <div className="flex items-start justify-between mb-4">
                     <div>
                       <div className="flex items-center gap-2 mb-1">
-                        <h2 className="text-foreground">Projects</h2>
+                        <h2 className="text-xl font-semibold text-foreground leading-snug">Projects</h2>
                         <Badge variant="secondary">{stagedProjectsCount} Staged</Badge>
                       </div>
                       <p className="text-muted-foreground">Track staging timelines and item allocation</p>
@@ -704,15 +728,20 @@ export function Dashboard({ onNavigate, jobAssignments }: DashboardProps) {
                             >
                               <div className="flex items-start justify-between mb-4">
                                 <div>
-                                  <h3 className="text-foreground mb-1">{job.jobName}</h3>
+                                  <h3 className="text-lg font-medium text-foreground mb-1 leading-snug">{job.clientName || job.shortAddress || job.jobLocation}</h3>
                                   <div className="flex items-center gap-1 text-muted-foreground">
                                     <MapPin className="w-3 h-3" />
                                     <p>{job.jobLocation}</p>
                                   </div>
                                 </div>
-                                <Badge variant={job.stagingStatus === "staged" ? "default" : "secondary"}>
-                                  {job.stagingStatus === "staged" ? "Staged" : "Upcoming"}
-                                </Badge>
+                                {(() => {
+                                  const status = getStagingStatus(job);
+                                  return (
+                                    <Badge variant={status === "staged" ? "default" : "secondary"}>
+                                      {status === "staged" ? "Staged" : status === "upcoming" ? "Upcoming" : "Pending"}
+                                    </Badge>
+                                  );
+                                })()}
                               </div>
                               {job.stagingDate && (
                                 <div className="flex items-center gap-4 mb-4 pb-4 border-b border-border">
@@ -733,6 +762,19 @@ export function Dashboard({ onNavigate, jobAssignments }: DashboardProps) {
                                   <span>Items</span>
                                   <span>{projectItems.length} assigned</span>
                                 </div>
+                                {job.roomPricing && Object.keys(job.roomPricing).length > 0 && (
+                                  <div className="flex items-center justify-between">
+                                    <span className="text-muted-foreground">Total Amount</span>
+                                    <span className="text-foreground font-medium">
+                                      {new Intl.NumberFormat('en-US', {
+                                        style: 'currency',
+                                        currency: 'USD',
+                                        minimumFractionDigits: 2,
+                                        maximumFractionDigits: 2,
+                                      }).format(calculateInvoiceTotal(job))}
+                                    </span>
+                                  </div>
+                                )}
                               </div>
                             </Card>
                           </motion.div>
@@ -781,7 +823,7 @@ export function Dashboard({ onNavigate, jobAssignments }: DashboardProps) {
                         />
                       </Card>
                       <Card className="bg-card border-border elevation-sm p-6 lg:w-80">
-                        <h4 className="text-foreground mb-4">Projects by Date</h4>
+                        <h4 className="text-base font-medium text-foreground mb-4 leading-normal">Projects by Date</h4>
                         <div className="space-y-3 max-h-[600px] overflow-y-auto">
                           {activeProjects
                             .filter(job => job.stagingDate)
@@ -809,10 +851,15 @@ export function Dashboard({ onNavigate, jobAssignments }: DashboardProps) {
                                     onClick={() => onNavigate("projectDetail", { project: job })}
                                   >
                                     <div className="flex items-start justify-between mb-2">
-                                      <h4 className="text-foreground text-sm font-medium">{job.jobName}</h4>
-                                      <Badge variant={job.stagingStatus === "staged" ? "default" : "secondary"} className="text-xs">
-                                        {job.stagingStatus === "staged" ? "Staged" : "Upcoming"}
-                                      </Badge>
+                                      <h4 className="text-base font-medium text-foreground leading-normal">{job.clientName || job.shortAddress || job.jobLocation}</h4>
+                                      {(() => {
+                                        const status = getStagingStatus(job);
+                                        return (
+                                          <Badge variant={status === "staged" ? "default" : "secondary"} className="text-xs">
+                                            {status === "staged" ? "Staged" : status === "upcoming" ? "Upcoming" : "Pending"}
+                                          </Badge>
+                                        );
+                                      })()}
                                     </div>
                                     <div className="flex items-center gap-2 text-muted-foreground text-xs mb-2">
                                       <CalendarIcon className="w-3 h-3" />
@@ -826,6 +873,21 @@ export function Dashboard({ onNavigate, jobAssignments }: DashboardProps) {
                                         </span>
                                       )}
                                     </div>
+                                    {job.roomPricing && Object.keys(job.roomPricing).length > 0 && (
+                                      <div className="mt-2 pt-2 border-t border-border">
+                                        <div className="flex items-center justify-between">
+                                          <span className="text-xs text-muted-foreground">Total Amount</span>
+                                          <span className="text-xs font-medium text-foreground">
+                                            {new Intl.NumberFormat('en-US', {
+                                              style: 'currency',
+                                              currency: 'USD',
+                                              minimumFractionDigits: 2,
+                                              maximumFractionDigits: 2,
+                                            }).format(calculateInvoiceTotal(job))}
+                                          </span>
+                                        </div>
+                                      </div>
+                                    )}
                                   </Card>
                                 </motion.div>
                               );
@@ -842,8 +904,8 @@ export function Dashboard({ onNavigate, jobAssignments }: DashboardProps) {
                   {projectView === "card" && activeProjects.length === 0 && (
                     <Card className="bg-card border-border elevation-sm p-8 text-center mt-6">
                       <FolderPlus className="w-12 h-12 text-muted-foreground mx-auto mb-4" />
-                      <h4 className="text-foreground mb-2">No Projects</h4>
-                      <p className="text-muted-foreground mb-4">
+                      <h4 className="text-base font-medium text-foreground mb-2 leading-normal">No Projects</h4>
+                      <p className="text-sm font-normal text-muted-foreground mb-4 leading-relaxed">
                         {projectFilter !== "all" 
                           ? `No ${projectFilter} projects found. Try changing the filter.`
                           : "Create your first project to start tracking staging and deployments"}
@@ -859,7 +921,7 @@ export function Dashboard({ onNavigate, jobAssignments }: DashboardProps) {
                   {projectView === "calendar" && activeProjects.filter(job => job.stagingDate).length === 0 && (
                     <Card className="bg-card border-border elevation-sm p-8 text-center mt-6">
                       <CalendarIcon className="w-12 h-12 text-muted-foreground mx-auto mb-4" />
-                      <h4 className="text-foreground mb-2">No Projects with Dates</h4>
+                      <h4 className="text-base font-medium text-foreground mb-2 leading-normal">No Projects with Dates</h4>
                       <p className="text-muted-foreground mb-4">
                         Projects need staging dates to appear on the calendar view.
                       </p>
@@ -883,7 +945,7 @@ export function Dashboard({ onNavigate, jobAssignments }: DashboardProps) {
                   className="mb-8"
                 >
                   <div className="flex items-center justify-between mb-4">
-                    <h2 className="text-foreground">Top 5 Most-Used Items</h2>
+                    <h2 className="text-xl font-semibold text-foreground leading-snug">Top 5 Most-Used Items</h2>
                     <div className="flex gap-2">
                       <button
                         onClick={() => handleScroll("left")}
@@ -929,8 +991,8 @@ export function Dashboard({ onNavigate, jobAssignments }: DashboardProps) {
                               {item.usageCount} uses
                             </Badge>
                           </div>
-                          <h4 className="text-foreground mb-2">{item.name}</h4>
-                          <p className="text-muted-foreground mb-3">{item.category}</p>
+                          <h4 className="text-base font-medium text-foreground mb-2 leading-normal">{item.name}</h4>
+                          <p className="text-sm font-normal text-muted-foreground mb-3 leading-relaxed">{item.category}</p>
                           <Badge variant={status.variant}>{status.label}</Badge>
                         </Card>
                       );
@@ -948,9 +1010,9 @@ export function Dashboard({ onNavigate, jobAssignments }: DashboardProps) {
                   <Card className="bg-card border-border elevation-sm p-6">
                     <div className="flex items-center gap-2 mb-4">
                       <TrendingUp className="w-5 h-5 text-primary" />
-                      <h3 className="text-foreground">Insights</h3>
+                      <h3 className="text-lg font-medium text-foreground leading-snug">Insights</h3>
                     </div>
-                    <h4 className="text-foreground mb-3">Usage Trends</h4>
+                    <h4 className="text-base font-medium text-foreground mb-3 leading-normal">Usage Trends</h4>
                     <p className="text-muted-foreground mb-4">
                       Your inventory utilization has increased by 8% this month. Professional Display Screens
                       and Modern Lounge Chairs are your most-used items. Consider increasing stock for items
@@ -1008,22 +1070,12 @@ export function Dashboard({ onNavigate, jobAssignments }: DashboardProps) {
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="jobName">Job Name</Label>
-                <Input
-                  id="jobName"
-                  value={jobName}
-                  onChange={(e) => setJobName(e.target.value)}
-                  placeholder="Enter job name"
-                />
-              </div>
-
-              <div className="space-y-2">
-                <Label htmlFor="jobLocation">Job Location</Label>
+                <Label htmlFor="jobLocation">Job Location <span className="text-destructive">*</span></Label>
                 <Input
                   id="jobLocation"
                   value={jobLocation}
                   onChange={(e) => setJobLocation(e.target.value)}
-                  placeholder="Enter location"
+                  placeholder="Enter address"
                 />
               </div>
 
@@ -1055,7 +1107,7 @@ export function Dashboard({ onNavigate, jobAssignments }: DashboardProps) {
                 </Button>
                 <Button
                   onClick={handleAssign}
-                  disabled={!jobName || !jobLocation || !stagingDate}
+                  disabled={!jobLocation || !stagingDate}
                   className="flex-1"
                 >
                   Assign

@@ -7,6 +7,8 @@ export type AppState =
   | "dashboard"
   | "addItem"
   | "bulkUpload"
+  | "multiItemUpload"
+  | "imageGallery"
   | "library"
   | "inUse"
   | "itemDetail"
@@ -44,7 +46,6 @@ export interface InventoryItem {
 export interface JobAssignment {
   id: string;
   itemId: string;
-  jobName: string;
   jobLocation: string;
   startDate: Date;
   endDate: Date;
@@ -55,6 +56,7 @@ export interface JobAssignment {
   stagingDate?: Date;
   stagingStatus?: "staged" | "upcoming";
   clientName?: string;
+  clientEmail?: string;
   shortAddress?: string;
   fullAddress?: string;
   itemIds?: string[];
@@ -67,7 +69,7 @@ export interface UsageHistoryEntry {
   itemId: string;
   date: Date;
   action: "assigned" | "returned" | "added" | "edited" | "deleted";
-  jobName?: string;
+  jobLocation?: string;
   user: string;
   quantity?: number;
 }

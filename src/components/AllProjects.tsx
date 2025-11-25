@@ -16,7 +16,7 @@ import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigge
 import { Calendar as CalendarComponent } from "./ui/calendar";
 import { format } from "date-fns";
 import type { AppState, JobAssignment } from "../types";
-import { getProjectItemIds, isProjectStaged, isStagingUpcoming } from "../utils/projectUtils";
+import { getProjectItemIds, isProjectStaged, isStagingUpcoming, getStagingStatus } from "../utils/projectUtils";
 
 interface AllProjectsProps {
   jobAssignments: JobAssignment[];
@@ -156,15 +156,20 @@ export function AllProjects({ jobAssignments, onNavigate }: AllProjectsProps) {
                     >
                       <div className="flex items-start justify-between mb-4">
                         <div className="flex-1">
-                          <h3 className="text-foreground mb-1 group-hover:text-white transition-colors">{job.jobName}</h3>
+                          <h3 className="text-foreground mb-1 group-hover:text-white transition-colors">{job.clientName || job.shortAddress || job.jobLocation}</h3>
                           <div className="flex items-center gap-1 text-muted-foreground group-hover:text-white transition-colors">
                             <MapPin className="w-3 h-3" />
                             <p className="text-sm">{job.jobLocation}</p>
                           </div>
                         </div>
-                        <Badge variant={job.stagingStatus === "staged" ? "default" : "secondary"}>
-                          {job.stagingStatus === "staged" ? "Staged" : "Upcoming"}
-                        </Badge>
+                        {(() => {
+                          const status = getStagingStatus(job);
+                          return (
+                            <Badge variant={status === "staged" ? "default" : "secondary"}>
+                              {status === "staged" ? "Staged" : status === "upcoming" ? "Upcoming" : "Pending"}
+                            </Badge>
+                          );
+                        })()}
                       </div>
 
                       {job.stagingDate && (
@@ -264,10 +269,15 @@ export function AllProjects({ jobAssignments, onNavigate }: AllProjectsProps) {
                             onClick={() => onNavigate("projectDetail", { project: job })}
                           >
                             <div className="flex items-start justify-between mb-2">
-                              <h4 className="text-foreground text-sm font-medium group-hover:text-white transition-colors">{job.jobName}</h4>
-                              <Badge variant={job.stagingStatus === "staged" ? "default" : "secondary"} className="text-xs">
-                                {job.stagingStatus === "staged" ? "Staged" : "Upcoming"}
-                              </Badge>
+                              <h4 className="text-foreground text-sm font-medium group-hover:text-white transition-colors">{job.clientName || job.shortAddress || job.jobLocation}</h4>
+                              {(() => {
+                                const status = getStagingStatus(job);
+                                return (
+                                  <Badge variant={status === "staged" ? "default" : "secondary"} className="text-xs">
+                                    {status === "staged" ? "Staged" : status === "upcoming" ? "Upcoming" : "Pending"}
+                                  </Badge>
+                                );
+                              })()}
                             </div>
                             <div className="flex items-center gap-2 text-muted-foreground text-xs mb-2 group-hover:text-white transition-colors">
                               <CalendarIcon className="w-3 h-3" />

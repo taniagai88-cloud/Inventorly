@@ -1,5 +1,5 @@
 import type { AppState, UserData } from "../types";
-import logoImage from "figma:asset/b45bd0da294a46d78fdbb0291d2831f3d2f293b4.png";
+import logoImage from "../assets/b45bd0da294a46d78fdbb0291d2831f3d2f293b4.png";
 
 interface AppHeaderProps {
   user: UserData;

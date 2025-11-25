@@ -74,7 +74,7 @@ export function Settings({ onNavigate }: SettingsProps) {
         <Card className="bg-card border-border elevation-sm p-6">
           <div className="flex items-center gap-2 mb-4">
             <Calendar className="w-5 h-5 text-foreground" />
-            <h2 className="text-lg font-semibold text-foreground">Staging Dates</h2>
+            <h2 className="text-xl font-semibold text-foreground leading-snug">Staging Dates</h2>
           </div>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
@@ -89,7 +89,7 @@ export function Settings({ onNavigate }: SettingsProps) {
                 onChange={(e) => handleChange("defaultStagingPeriod", parseInt(e.target.value) || 0)}
                 className="mt-1"
               />
-              <p className="text-muted-foreground text-xs mt-1">
+              <p className="text-xs font-normal text-muted-foreground mt-1 leading-relaxed">
                 Default number of days for staging contracts
               </p>
             </div>
@@ -105,7 +105,7 @@ export function Settings({ onNavigate }: SettingsProps) {
                 onChange={(e) => handleChange("contractDuration", parseInt(e.target.value) || 0)}
                 className="mt-1"
               />
-              <p className="text-muted-foreground text-xs mt-1">
+              <p className="text-xs font-normal text-muted-foreground mt-1 leading-relaxed">
                 Standard contract duration from staging date
               </p>
             </div>
@@ -116,7 +116,7 @@ export function Settings({ onNavigate }: SettingsProps) {
         <Card className="bg-card border-border elevation-sm p-6">
           <div className="flex items-center gap-2 mb-4">
             <DollarSign className="w-5 h-5 text-foreground" />
-            <h2 className="text-lg font-semibold text-foreground">Room Pricing</h2>
+            <h2 className="text-xl font-semibold text-foreground leading-snug">Room Pricing</h2>
           </div>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
@@ -225,10 +225,10 @@ export function Settings({ onNavigate }: SettingsProps) {
           
           {/* Bedroom with sizes */}
           <div className="mt-6 pt-6 border-t border-border">
-            <Label className="text-foreground font-medium mb-4 block">Bedroom</Label>
+            <Label className="text-base font-medium text-foreground mb-4 block leading-normal">Bedroom</Label>
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
               <div>
-                <Label htmlFor="bedroomPriceSmall" className="text-muted-foreground text-sm">
+                <Label htmlFor="bedroomPriceSmall" className="text-xs font-medium text-muted-foreground leading-normal">
                   Small
                 </Label>
                 <div className="relative mt-1">
@@ -245,7 +245,7 @@ export function Settings({ onNavigate }: SettingsProps) {
                 </div>
               </div>
               <div>
-                <Label htmlFor="bedroomPriceMedium" className="text-muted-foreground text-sm">
+                <Label htmlFor="bedroomPriceMedium" className="text-xs font-medium text-muted-foreground leading-normal">
                   Medium
                 </Label>
                 <div className="relative mt-1">
@@ -262,7 +262,7 @@ export function Settings({ onNavigate }: SettingsProps) {
                 </div>
               </div>
               <div>
-                <Label htmlFor="bedroomPriceLarge" className="text-muted-foreground text-sm">
+                <Label htmlFor="bedroomPriceLarge" className="text-xs font-medium text-muted-foreground leading-normal">
                   Large
                 </Label>
                 <div className="relative mt-1">
@@ -286,7 +286,7 @@ export function Settings({ onNavigate }: SettingsProps) {
         <Card className="bg-card border-border elevation-sm p-6">
           <div className="flex items-center gap-2 mb-4">
             <DollarSign className="w-5 h-5 text-foreground" />
-            <h2 className="text-lg font-semibold text-foreground">Delivery & Pickup Fees</h2>
+            <h2 className="text-xl font-semibold text-foreground leading-snug">Delivery & Pickup Fees</h2>
           </div>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
@@ -330,7 +330,7 @@ export function Settings({ onNavigate }: SettingsProps) {
         <Card className="bg-card border-border elevation-sm p-6">
           <div className="flex items-center gap-2 mb-4">
             <Building2 className="w-5 h-5 text-foreground" />
-            <h2 className="text-lg font-semibold text-foreground">Warehouse Location</h2>
+            <h2 className="text-xl font-semibold text-foreground leading-snug">Warehouse Location</h2>
           </div>
           <div className="space-y-4">
             <div>

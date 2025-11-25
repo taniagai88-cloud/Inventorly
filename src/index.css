@@ -232,6 +232,14 @@
     display: block;
   }
 
+  /* Ensure SVG icons render crisply without pixelation */
+  svg {
+    shape-rendering: geometricPrecision;
+    text-rendering: optimizeLegibility;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+
   img, video {
     max-width: 100%;
     height: auto;

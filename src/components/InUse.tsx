@@ -8,22 +8,35 @@ import { ImageWithFallback } from "./figma/ImageWithFallback";
 import type { AppState, InventoryItem, JobAssignment } from "../types";
 import { mockJobAssignments } from "../mockData";
 import { format } from "date-fns";
+import { getItemLocation, getAccurateItemQuantities } from "../utils/projectUtils";
 
 interface InUseProps {
   items: InventoryItem[];
   onNavigate: (state: AppState, data?: any) => void;
+  jobAssignments?: JobAssignment[];
 }
 
-export function InUse({ items, onNavigate }: InUseProps) {
+export function InUse({ items, onNavigate, jobAssignments = [] }: InUseProps) {
   const [viewMode, setViewMode] = useState<"card" | "list">("card");
 
+  // Use provided jobAssignments or fallback to mock data
+  const activeJobAssignments = jobAssignments.length > 0 
+    ? jobAssignments.filter(job => job.status === "active")
+    : mockJobAssignments.filter(job => job.status === "active");
+
+  // Calculate accurate quantities for all items based on project assignments
+  const itemsWithAccurateQuantities = items.map(item => {
+    const accurateQuantities = getAccurateItemQuantities(item, activeJobAssignments);
+    return { ...item, ...accurateQuantities };
+  });
+  
   // Filter items that are in use
-  const inUseItems = items.filter((item) => item.inUseQuantity > 0);
+  const inUseItems = itemsWithAccurateQuantities.filter((item) => item.inUseQuantity > 0);
 
   // Get job assignments for an item
   const getItemJobs = (itemId: string): JobAssignment[] => {
-    return mockJobAssignments.filter(
-      (job) => job.itemId === itemId && job.status === "active"
+    return activeJobAssignments.filter(
+      (job) => job.itemId === itemId
     );
   };
 
@@ -90,7 +103,7 @@ export function InUse({ items, onNavigate }: InUseProps) {
                     {/* Image */}
                     <div className="aspect-square bg-white flex items-center justify-center p-6">
                       {item.imageUrl ? (
-                        <img
+                        <ImageWithFallback
                           src={item.imageUrl}
                           alt={item.name}
                           className="w-full h-full object-contain"
@@ -112,14 +125,16 @@ export function InUse({ items, onNavigate }: InUseProps) {
                       {/* Usage Info */}
                       <div className="space-y-2 mb-4">
                         <div className="flex items-center gap-2">
-                          <Package className="w-4 h-4 text-muted-foreground" />
+                          <Package className="w-4 h-4 text-muted-foreground shrink-0" />
                           <p className="text-muted-foreground">
                             {item.inUseQuantity} of {item.totalQuantity} in use
                           </p>
                         </div>
                         <div className="flex items-center gap-2">
-                          <MapPin className="w-4 h-4 text-muted-foreground" />
-                          <p className="text-muted-foreground">{item.location}</p>
+                          <MapPin className="w-4 h-4 text-muted-foreground shrink-0" />
+                          <p className="text-muted-foreground">
+                            {getItemLocation(item.id, item.location, activeJobAssignments, item.inUseQuantity, item.totalQuantity)}
+                          </p>
                         </div>
                       </div>
 
@@ -144,7 +159,7 @@ export function InUse({ items, onNavigate }: InUseProps) {
                               <div key={job.id} className="flex items-start gap-2">
                                 <div className="w-1.5 h-1.5 rounded-full bg-chart-3 mt-2 shrink-0" />
                                 <div className="flex-1 min-w-0">
-                                  <p className="text-foreground truncate">{job.jobName}</p>
+                                  <p className="text-foreground truncate">{job.clientName || job.shortAddress || job.jobLocation}</p>
                                   <p className="text-muted-foreground">
                                     {job.quantity} unit{job.quantity !== 1 ? "s" : ""}
                                   </p>
@@ -203,13 +218,13 @@ export function InUse({ items, onNavigate }: InUseProps) {
                         <div className="flex items-center gap-3">
                           <div className="w-12 h-12 rounded-lg bg-white flex items-center justify-center shrink-0">
                             {item.imageUrl ? (
-                              <img
+                              <ImageWithFallback
                                 src={item.imageUrl}
                                 alt={item.name}
                                 className="w-full h-full object-contain p-1"
                               />
                             ) : (
-                              <Package className="w-6 h-6 text-muted" />
+                              <Package className="w-4 h-4 text-muted shrink-0" />
                             )}
                           </div>
                           <div>
@@ -229,7 +244,9 @@ export function InUse({ items, onNavigate }: InUseProps) {
                       <td className="px-6 py-4">
                         <div className="flex items-center gap-2">
                           <MapPin className="w-4 h-4 text-muted-foreground shrink-0" />
-                          <p className="text-foreground">{item.location}</p>
+                          <p className="text-foreground">
+                            {getItemLocation(item.id, item.location, activeJobAssignments, item.inUseQuantity, item.totalQuantity)}
+                          </p>
                         </div>
                       </td>
 
@@ -261,7 +278,7 @@ export function InUse({ items, onNavigate }: InUseProps) {
                               <div key={job.id} className="flex items-start gap-2">
                                 <div className="w-1.5 h-1.5 rounded-full bg-chart-3 mt-1.5 shrink-0" />
                                 <div>
-                                  <p className="text-foreground">{job.jobName}</p>
+                                  <p className="text-foreground">{job.clientName || job.shortAddress || job.jobLocation}</p>
                                   <p className="text-muted-foreground">
                                     {job.quantity} unit{job.quantity !== 1 ? "s" : ""}
                                   </p>
