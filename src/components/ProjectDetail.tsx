@@ -72,6 +72,7 @@ export function ProjectDetail({ project, items, onNavigate, onUpdateJob, jobAssi
   const [selectedItemIds, setSelectedItemIds] = useState<Set<string>>(new Set());
   const [searchQuery, setSearchQuery] = useState("");
   const [categoryFilter, setCategoryFilter] = useState("all");
+  const [autoAssign, setAutoAssign] = useState(false); // Auto-assign items when selected
   
   // Update current date every minute for real-time calculations
   useEffect(() => {
@@ -119,6 +120,27 @@ export function ProjectDetail({ project, items, onNavigate, onUpdateJob, jobAssi
   
   // Handle item selection toggle
   const handleItemToggle = (itemId: string) => {
+    // If auto-assign is enabled, assign immediately
+    if (autoAssign && onUpdateJob) {
+      const existingItemIds = project.itemIds || [];
+      // Check if item is already assigned
+      if (existingItemIds.includes(itemId)) {
+        toast.info("Item is already assigned to this project");
+        return;
+      }
+      
+      const updatedItemIds = [...existingItemIds, itemId];
+      const updatedProject: JobAssignment = {
+        ...project,
+        itemIds: updatedItemIds,
+      };
+      onUpdateJob(updatedProject);
+      toast.success("Item assigned to project");
+      // Item will automatically disappear from list since it's now assigned
+      return;
+    }
+    
+    // Normal selection mode - toggle selection
     setSelectedItemIds(prev => {
       const newSet = new Set(prev);
       if (newSet.has(itemId)) {
@@ -128,6 +150,38 @@ export function ProjectDetail({ project, items, onNavigate, onUpdateJob, jobAssi
       }
       return newSet;
     });
+  };
+
+  // Handle select all visible items
+  const handleSelectAll = () => {
+    if (autoAssign && onUpdateJob) {
+      // Auto-assign all visible items
+      const existingItemIds = project.itemIds || [];
+      const allVisibleIds = filteredAvailableItems.map(item => item.id);
+      const newItemIds = allVisibleIds.filter(id => !existingItemIds.includes(id));
+      
+      if (newItemIds.length === 0) {
+        toast.info("All visible items are already assigned");
+        return;
+      }
+      
+      const updatedItemIds = [...existingItemIds, ...newItemIds];
+      const updatedProject: JobAssignment = {
+        ...project,
+        itemIds: updatedItemIds,
+      };
+      onUpdateJob(updatedProject);
+      toast.success(`${newItemIds.length} item${newItemIds.length > 1 ? 's' : ''} assigned to project`);
+    } else {
+      // Normal selection mode
+      const allVisibleIds = new Set(filteredAvailableItems.map(item => item.id));
+      setSelectedItemIds(allVisibleIds);
+    }
+  };
+
+  // Handle deselect all
+  const handleDeselectAll = () => {
+    setSelectedItemIds(new Set());
   };
   
   // Handle assign selected items
@@ -167,6 +221,7 @@ export function ProjectDetail({ project, items, onNavigate, onUpdateJob, jobAssi
       setSelectedItemIds(new Set());
       setSearchQuery("");
       setCategoryFilter("all");
+      setAutoAssign(false); // Reset auto-assign toggle
     }
   }, [addItemsDialogOpen]);
   
@@ -1763,6 +1818,43 @@ Total: ${formatCurrency(total)}
             </Select>
           </div>
 
+          {/* Bulk Actions and Auto-Assign Toggle */}
+          <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 mb-4 flex-shrink-0 p-3 bg-muted/50 rounded-lg">
+            <div className="flex items-center gap-4 flex-wrap">
+              <div className="flex items-center gap-2">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={handleSelectAll}
+                  disabled={filteredAvailableItems.length === 0}
+                  className="min-h-[36px] touch-manipulation"
+                >
+                  {autoAssign ? `Assign All (${filteredAvailableItems.length})` : `Select All (${filteredAvailableItems.length})`}
+                </Button>
+                {selectedItemIds.size > 0 && (
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={handleDeselectAll}
+                    className="min-h-[36px] touch-manipulation"
+                  >
+                    Deselect All
+                  </Button>
+                )}
+              </div>
+            </div>
+            <div className="flex items-center gap-2">
+              <Checkbox
+                id="auto-assign"
+                checked={autoAssign}
+                onCheckedChange={(checked) => setAutoAssign(checked === true)}
+              />
+              <Label htmlFor="auto-assign" className="text-sm font-normal cursor-pointer">
+                Auto-assign on selection
+              </Label>
+            </div>
+          </div>
+
           {/* Selected Items Count */}
           {selectedItemIds.size > 0 && (
             <div className="mb-4 flex items-center justify-between flex-shrink-0 p-3 bg-primary/10 rounded-lg">
@@ -1855,15 +1947,22 @@ Total: ${formatCurrency(total)}
               onClick={() => setAddItemsDialogOpen(false)}
               className="flex-1 sm:flex-initial min-h-[44px] touch-manipulation"
             >
-              Cancel
+              {autoAssign ? "Close" : "Cancel"}
             </Button>
-            <Button
-              onClick={handleAssignSelectedItems}
-              disabled={selectedItemIds.size === 0}
-              className="flex-1 sm:flex-initial min-h-[44px] touch-manipulation"
-            >
-              Assign {selectedItemIds.size > 0 && `(${selectedItemIds.size})`}
-            </Button>
+            {!autoAssign && (
+              <Button
+                onClick={handleAssignSelectedItems}
+                disabled={selectedItemIds.size === 0}
+                className="flex-1 sm:flex-initial min-h-[44px] touch-manipulation"
+              >
+                Assign {selectedItemIds.size > 0 && `(${selectedItemIds.size})`}
+              </Button>
+            )}
+            {autoAssign && (
+              <div className="flex-1 sm:flex-initial text-sm text-muted-foreground flex items-center justify-center">
+                Items are assigned automatically when selected
+              </div>
+            )}
           </div>
         </DialogContent>
       </Dialog>
