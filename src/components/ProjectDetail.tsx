@@ -1738,9 +1738,9 @@ Total: ${formatCurrency(total)}
 
       {/* Add Items Multi-Select Dialog */}
       <Dialog open={addItemsDialogOpen} onOpenChange={setAddItemsDialogOpen}>
-        <DialogContent className="max-w-3xl max-h-[85vh] overflow-hidden flex flex-col p-0 rounded-xl">
+        <DialogContent className="max-w-3xl overflow-hidden flex flex-col p-0 rounded-xl" style={{ maxHeight: 'calc(100vh - 4rem)', height: 'calc(100vh - 4rem)' }}>
           {/* HEADER */}
-          <div className="p-4 border-b sticky top-0 bg-background z-10">
+          <div className="p-4 border-b flex-shrink-0 bg-background">
             <h2 className="text-lg font-semibold">Add Items to Project</h2>
             <p className="text-sm text-muted-foreground">
               Select multiple items to assign to this project
@@ -1897,7 +1897,7 @@ Total: ${formatCurrency(total)}
           </div>
 
           {/* FOOTER */}
-          <div className="p-4 border-t sticky bottom-0 bg-background z-10 flex justify-end gap-2">
+          <div className="p-4 border-t flex-shrink-0 bg-background flex justify-end gap-2 mt-auto">
             <Button
               variant="outline"
               onClick={() => setAddItemsDialogOpen(false)}
