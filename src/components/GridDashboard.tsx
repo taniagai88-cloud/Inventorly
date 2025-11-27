@@ -270,37 +270,31 @@ export function GridDashboard({ onNavigate, jobAssignments }: DashboardProps) {
         // Calculate positions relative to container
         const topItemsBottom = topItemsRect.bottom - containerRect.top;
         const insightsTop = insightsRect.top - containerRect.top;
-        const requiredSpacing = 40;
         
         // Always ensure topItems can expand
         (topItemsGridItem as HTMLElement).style.setProperty('height', 'auto', 'important');
         (topItemsGridItem as HTMLElement).style.setProperty('overflow', 'visible', 'important');
         (topItemsGridItem as HTMLElement).style.setProperty('min-height', '100%', 'important');
         
-        // Check for overlap and fix it
-        if (insightsTop < topItemsBottom + requiredSpacing) {
-          // Calculate how much to push Insights down
-          const pushDown = (topItemsBottom + requiredSpacing) - insightsTop;
+        // Position Insights directly at the bottom of Top Items (no gap)
+        // Calculate how much to push Insights down to sit right below Top Items
+        const pushDown = topItemsBottom - insightsTop;
+        
+        if (pushDown > 0) {
+          // Push Insights down to sit directly below Top Items
           const newTransform = `translateY(${pushDown}px)`;
           
           // Only update if transform has changed
           if (lastAppliedTransform !== newTransform) {
             (insightsGridItem as HTMLElement).style.setProperty('transform', newTransform, 'important');
-            (insightsGridItem as HTMLElement).style.setProperty('position', 'absolute', 'important');
-            (insightsGridItem as HTMLElement).style.setProperty('top', `${insightsTop + pushDown}px`, 'important');
-            (insightsGridItem as HTMLElement).style.setProperty('height', 'auto', 'important');
-            (insightsGridItem as HTMLElement).style.setProperty('overflow', 'visible', 'important');
+            (insightsGridItem as HTMLElement).style.setProperty('position', 'relative', 'important');
+            (insightsGridItem as HTMLElement).style.setProperty('z-index', '1', 'important');
             lastAppliedTransform = newTransform;
           }
         } else {
-          // Reset transform if no overlap (but keep other styles)
+          // Reset transform if Insights is already positioned correctly
           if (lastAppliedTransform !== '') {
-            const currentTransform = (insightsGridItem as HTMLElement).style.transform;
-            if (currentTransform && currentTransform.includes('translateY')) {
-              (insightsGridItem as HTMLElement).style.setProperty('transform', '', 'important');
-            }
-            (insightsGridItem as HTMLElement).style.setProperty('height', 'auto', 'important');
-            (insightsGridItem as HTMLElement).style.setProperty('overflow', 'visible', 'important');
+            (insightsGridItem as HTMLElement).style.setProperty('transform', '', 'important');
             lastAppliedTransform = '';
           }
         }

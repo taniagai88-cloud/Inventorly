@@ -230,18 +230,26 @@ export function ProjectDetail({ project, items, onNavigate, onUpdateJob, jobAssi
 
   // Calculate total value (matching invoice calculation exactly)
   const calculateProjectTotal = (): number => {
-    if (!project.roomPricing || Object.keys(project.roomPricing).length === 0) {
+    // Use latestProject to ensure we have the most current roomPricing data
+    const currentRoomPricing = latestProject.roomPricing || project.roomPricing;
+    
+    if (!currentRoomPricing || Object.keys(currentRoomPricing).length === 0) {
       return 0;
     }
     
     // Calculate subtotal from room pricing - only include rooms with quantity > 0 and price > 0 (same as invoice)
-    const subtotal = Object.values(project.roomPricing).reduce((sum, room) => {
+    const subtotal = Object.values(currentRoomPricing).reduce((sum, room) => {
       // Only include rooms that have quantity > 0 and price > 0 (matching invoice filter)
       if ((room.quantity || 0) > 0 && (room.price || 0) > 0) {
         return sum + (room.price || 0) * (room.quantity || 0);
       }
       return sum;
   }, 0);
+    
+    // If no rooms are selected (subtotal is 0), return 0 - don't include fees/tax
+    if (subtotal === 0) {
+      return 0;
+    }
     
     // Get delivery and pickup fees from settings
     const deliveryFee = getSetting("deliveryFee");
@@ -281,6 +289,20 @@ export function ProjectDetail({ project, items, onNavigate, onUpdateJob, jobAssi
   };
   
   const projectTotal = calculateProjectTotal();
+  
+  // Check if there are any rooms actually selected (with quantity > 0)
+  const hasSelectedRooms = (): boolean => {
+    const currentRoomPricing = latestProject.roomPricing || project.roomPricing;
+    if (!currentRoomPricing || Object.keys(currentRoomPricing).length === 0) {
+      return false;
+    }
+    // Check if any room has quantity > 0 and price > 0
+    return Object.values(currentRoomPricing).some(room => 
+      (room.quantity || 0) > 0 && (room.price || 0) > 0
+    );
+  };
+  
+  const hasRoomsSelected = hasSelectedRooms();
 
   // Get staging status badge
   const getStagingStatusBadge = () => {
@@ -1363,7 +1385,7 @@ Total: ${formatCurrency(total)}
                 <p className="text-sm font-normal text-foreground leading-relaxed">{format(project.endDate, "MMM d, yyyy")}</p>
               </div>
             </div>
-            {project.roomPricing && Object.keys(project.roomPricing).length > 0 && (
+            {!isUpcoming && hasRoomsSelected && projectTotal > 0 && (
               <div className="pt-4 border-t border-border">
                 <div className="flex items-center justify-between">
                   <label className="text-xs font-medium text-muted-foreground leading-normal">Total Contract Amount</label>
