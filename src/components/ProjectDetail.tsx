@@ -82,17 +82,21 @@ export function ProjectDetail({ project, items, onNavigate, onUpdateJob, jobAssi
     return () => clearInterval(interval);
   }, []);
 
+  // Always get the latest project data from jobAssignments to ensure we have current itemIds
+  const latestProject = jobAssignments.find(job => job.id === project.id) || project;
+  
   // Update editedProject when project prop changes
   useEffect(() => {
-    setEditedProject(project);
-    setEditStagingDateOption(project.stagingDate ? "date" : "tbd");
-  }, [project]);
+    setEditedProject(latestProject);
+    setEditStagingDateOption(latestProject.stagingDate ? "date" : "tbd");
+  }, [latestProject]);
   
   // Get items assigned to this project (show all assigned items regardless of staging status)
-  const projectItemIds = project.itemIds || [];
+  // Use latestProject to ensure we always have the most current itemIds
+  const projectItemIds = latestProject.itemIds || [];
   const projectItems = items.filter(item => projectItemIds.includes(item.id));
-  const isStaged = isProjectStaged(project);
-  const isUpcoming = isStagingUpcoming(project.stagingDate);
+  const isStaged = isProjectStaged(latestProject);
+  const isUpcoming = isStagingUpcoming(latestProject.stagingDate);
   
   // Get all inventory items (show catalog of all items)
   // Filter out only items already assigned to this project
@@ -149,19 +153,36 @@ export function ProjectDetail({ project, items, onNavigate, onUpdateJob, jobAssi
       return;
     }
     
-    // Add selected items to project's itemIds
-    const existingItemIds = project.itemIds || [];
-    const newItemIds = Array.from(selectedItemIds);
+    // Always get the latest project data from jobAssignments to ensure we have current itemIds
+    const latestProject = jobAssignments.find(job => job.id === project.id) || project;
+    const existingItemIds = latestProject.itemIds || [];
+    
+    console.log('handleAssignSelectedItems:', {
+      projectId: latestProject.id,
+      existingItemIds,
+      selectedItemIds: Array.from(selectedItemIds),
+    });
+    
+    // Filter out items that are already assigned to prevent duplicates
+    const newItemIds = Array.from(selectedItemIds).filter(id => !existingItemIds.includes(id));
+    
+    if (newItemIds.length === 0) {
+      toast.error("Selected items are already assigned to this project");
+      return;
+    }
+    
     const updatedItemIds = [...existingItemIds, ...newItemIds];
     
+    console.log('Updating project with itemIds:', updatedItemIds);
+    
     const updatedProject: JobAssignment = {
-      ...project,
+      ...latestProject,
       itemIds: updatedItemIds,
     };
     
     onUpdateJob(updatedProject);
     
-    toast.success(`${selectedItemIds.size} item${selectedItemIds.size > 1 ? 's' : ''} assigned to project`);
+    toast.success(`${newItemIds.length} item${newItemIds.length > 1 ? 's' : ''} assigned to project`);
     setSelectedItemIds(new Set());
     setAddItemsDialogOpen(false);
     setSearchQuery("");
@@ -292,6 +313,7 @@ export function ProjectDetail({ project, items, onNavigate, onUpdateJob, jobAssi
   
   // State for adding new room
   const [newRoomName, setNewRoomName] = useState("");
+  const [newRoomPrice, setNewRoomPrice] = useState("");
   const [showAddRoomInput, setShowAddRoomInput] = useState(false);
   
   // All rooms (default + custom)
@@ -442,25 +464,36 @@ export function ProjectDetail({ project, items, onNavigate, onUpdateJob, jobAssi
   const saveProjectChanges = useCallback(() => {
     if (!onUpdateJob) return;
     
-    // Create room assignments object - only include selected rooms with quantity > 0
+    // Create room assignments object - include rooms with quantity > 0 OR rooms with price > 0
     const roomAssignments: Record<string, string[]> = {};
-    selectedRooms.forEach(room => {
+    // Get all rooms that should be saved (selected rooms OR rooms with prices set)
+    const roomsToSave = new Set([
+      ...selectedRooms,
+      ...Object.keys(roomPrices).filter(room => (roomPrices[room] || 0) > 0)
+    ]);
+    
+    roomsToSave.forEach(room => {
       const qty = roomQuantities[room] || 0;
-      if (qty > 0) {
+      const price = roomPrices[room] || 0;
+      // Save room if it has quantity > 0 OR price > 0
+      if (qty > 0 || price > 0) {
         // Preserve existing item assignments for this room, or initialize empty array
-        roomAssignments[room] = project.roomAssignments?.[room] || [];
+        // Use latestProject to ensure we have current room assignments
+        roomAssignments[room] = latestProject.roomAssignments?.[room] || [];
       }
     });
 
-    // Store pricing data for invoice use (including size) - only for selected rooms with quantity > 0
+    // Store pricing data for invoice use (including size) - include rooms with quantity > 0 OR price > 0
     const pricingData: Record<string, { price: number; quantity: number; size?: "small" | "medium" | "large" }> = {};
-    selectedRooms.forEach(room => {
+    roomsToSave.forEach(room => {
       const qty = roomQuantities[room] || 0;
-      if (qty > 0) {
+      const price = roomPrices[room] || 0;
+      // Save pricing if room has quantity > 0 OR price > 0
+      if (qty > 0 || price > 0) {
         const bedroomSize = getBedroomSize(room);
         pricingData[room] = {
-          price: roomPrices[room] || 0,
-          quantity: qty,
+          price: price,
+          quantity: qty > 0 ? qty : 1, // Default to 1 if price is set but quantity is 0
           size: bedroomSize || undefined,
         };
       }
@@ -471,21 +504,22 @@ export function ProjectDetail({ project, items, onNavigate, onUpdateJob, jobAssi
 
     // Update project with all changes: room assignments, pricing data, and preserve other project data
     // Mark project as staged when rooms are saved (if rooms with quantity > 0 exist)
+    // Always use latestProject to ensure we're working with the most current data
     const hasRooms = Object.keys(pricingData).length > 0;
     const updatedProject: JobAssignment = {
-      ...project,
+      ...latestProject,
       roomAssignments: Object.keys(roomAssignments).length > 0 ? roomAssignments : undefined,
       roomPricing: hasRooms ? pricingData : undefined,
-      stagingStatus: hasRooms ? "staged" : project.stagingStatus,
+      stagingStatus: hasRooms ? "staged" : latestProject.stagingStatus,
       // Set staging date to today if not already set and rooms are being saved
-      stagingDate: hasRooms && !project.stagingDate ? currentDate : project.stagingDate,
+      stagingDate: hasRooms && !latestProject.stagingDate ? currentDate : latestProject.stagingDate,
     };
     
     onUpdateJob(updatedProject);
-  }, [onUpdateJob, project, selectedRooms, roomQuantities, roomPrices, allRooms, getBedroomSize, currentDate]);
+  }, [onUpdateJob, latestProject, selectedRooms, roomQuantities, roomPrices, allRooms, getBedroomSize, currentDate, jobAssignments]);
 
   
-  // Auto-save when room selections, quantities, or prices change (debounced)
+  // Auto-save when room selections, quantities, prices, or custom rooms change (debounced)
   useEffect(() => {
     if (!onUpdateJob) return;
     
@@ -505,7 +539,7 @@ export function ProjectDetail({ project, items, onNavigate, onUpdateJob, jobAssi
         clearTimeout(saveTimeoutRef.current);
       }
     };
-  }, [selectedRooms, roomQuantities, roomPrices, saveProjectChanges, onUpdateJob]);
+  }, [selectedRooms, roomQuantities, roomPrices, customRooms, saveProjectChanges, onUpdateJob]);
 
   // Save on unmount to ensure no changes are lost
   useEffect(() => {
@@ -528,20 +562,92 @@ export function ProjectDetail({ project, items, onNavigate, onUpdateJob, jobAssi
       return;
     }
     
-    if (allRooms.includes(trimmedName)) {
+    // Check against current customRooms state to avoid duplicates
+    if (customRooms.includes(trimmedName) || defaultRooms.includes(trimmedName)) {
       toast.error("This room already exists");
       return;
     }
     
-    // Check if it's "Entryway" or contains "Entryway" to set default price
-    const defaultPrice = trimmedName.toLowerCase().includes("entryway") ? 75 : 0;
+    // Get price from input or use default
+    const price = parseFloat(newRoomPrice) || 0;
     
-    setCustomRooms([...customRooms, trimmedName]);
-    setRoomQuantities(prev => ({ ...prev, [trimmedName]: 0 }));
-    setRoomPrices(prev => ({ ...prev, [trimmedName]: defaultPrice }));
+    // Check if it's "Entryway" or contains "Entryway" to set default price if no price provided
+    const defaultPrice = trimmedName.toLowerCase().includes("entryway") ? 75 : (price > 0 ? price : 0);
+    
+    // Calculate updated values first (before state updates)
+    const updatedCustomRooms = [...customRooms, trimmedName];
+    const updatedSelectedRooms = selectedRooms.includes(trimmedName) ? selectedRooms : [...selectedRooms, trimmedName];
+    const updatedRoomQuantities = { ...roomQuantities, [trimmedName]: 1 };
+    const updatedRoomPrices = { ...roomPrices, [trimmedName]: defaultPrice };
+    
+    // Update all state - this will trigger re-render and room will appear with checkbox checked and quantity 1
+    setCustomRooms(updatedCustomRooms);
+    setSelectedRooms(updatedSelectedRooms);
+    setRoomQuantities(updatedRoomQuantities);
+    setRoomPrices(updatedRoomPrices);
+    
+    // Clear form inputs
     setNewRoomName("");
+    setNewRoomPrice("");
     setShowAddRoomInput(false);
-    toast.success(`Added "${trimmedName}" room`);
+    
+    // Immediately save the changes so the room appears in the quote
+    if (onUpdateJob) {
+      // Create room assignments
+      const roomAssignments: Record<string, string[]> = {};
+      updatedSelectedRooms.forEach(room => {
+        const qty = updatedRoomQuantities[room] || 0;
+        const roomPriceValue = updatedRoomPrices[room] || 0;
+        if (qty > 0 || roomPriceValue > 0) {
+          roomAssignments[room] = latestProject.roomAssignments?.[room] || [];
+        }
+      });
+
+      // Create pricing data
+      const pricingData: Record<string, { price: number; quantity: number; size?: "small" | "medium" | "large" }> = {};
+      const roomsToSave = new Set([
+        ...updatedSelectedRooms,
+        ...Object.keys(updatedRoomPrices).filter(room => (updatedRoomPrices[room] || 0) > 0)
+      ]);
+      
+      roomsToSave.forEach(room => {
+        const qty = updatedRoomQuantities[room] || 0;
+        const roomPriceValue = updatedRoomPrices[room] || 0;
+        if (qty > 0 || roomPriceValue > 0) {
+          const bedroomSize = getBedroomSize(room);
+          pricingData[room] = {
+            price: roomPriceValue,
+            quantity: qty > 0 ? qty : 1,
+            size: bedroomSize || undefined,
+          };
+        }
+      });
+      
+      // Update roomPricing state
+      setRoomPricing(pricingData);
+
+      // Update project - always use latestProject to ensure we have current data
+      const hasRooms = Object.keys(pricingData).length > 0;
+      const updatedProject: JobAssignment = {
+        ...latestProject,
+        roomAssignments: Object.keys(roomAssignments).length > 0 ? roomAssignments : undefined,
+        roomPricing: hasRooms ? pricingData : undefined,
+        stagingStatus: hasRooms ? "staged" : latestProject.stagingStatus,
+        stagingDate: hasRooms && !latestProject.stagingDate ? currentDate : latestProject.stagingDate,
+      };
+      
+      onUpdateJob(updatedProject);
+    }
+    
+    toast.success(`Added "${trimmedName}" room${defaultPrice > 0 ? ` with price $${defaultPrice.toFixed(2)}` : ''} - Quantity set to 1`);
+    
+    // Scroll to the newly added room after a brief delay to ensure it's rendered
+    setTimeout(() => {
+      const roomElement = document.getElementById(`room-${trimmedName}`);
+      if (roomElement) {
+        roomElement.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+      }
+    }, 100);
   };
   
   // Function to remove a custom room
@@ -630,7 +736,7 @@ export function ProjectDetail({ project, items, onNavigate, onUpdateJob, jobAssi
     return itemIds.reduce((sum, itemId) => {
       const item = projectItems.find(i => i.id === itemId);
       if (item) {
-        const quantity = project.itemIds?.filter(id => id === item.id).length || 1;
+        const quantity = latestProject.itemIds?.filter(id => id === item.id).length || 1;
         return sum + (item.purchaseCost * quantity);
       }
       return sum;
@@ -670,7 +776,7 @@ export function ProjectDetail({ project, items, onNavigate, onUpdateJob, jobAssi
         return false;
       });
       const calculatedPrice = itemsInRoom.reduce((sum, item) => {
-        const quantity = project.itemIds?.filter(id => id === item.id).length || 1;
+        const quantity = latestProject.itemIds?.filter(id => id === item.id).length || 1;
         return sum + (item.purchaseCost * quantity);
       }, 0);
       
@@ -958,7 +1064,7 @@ export function ProjectDetail({ project, items, onNavigate, onUpdateJob, jobAssi
       if (Object.keys(initial).length === 0) {
         // If no room assignments, calculate from items
         projectItems.forEach(item => {
-          const quantity = project.itemIds?.filter(id => id === item.id).length || 1;
+          const quantity = latestProject.itemIds?.filter(id => id === item.id).length || 1;
           let assignedRoom = "Living Room"; // Default
           if (item.category === "Furniture") {
             if (item.name.toLowerCase().includes("bed") || item.name.toLowerCase().includes("bedroom")) {
@@ -1354,6 +1460,7 @@ Total: ${formatCurrency(total)}
                   return (
                     <motion.div
                       key={room}
+                      id={`room-${room}`}
                       initial={false}
                       animate={{ 
                         backgroundColor: isSelected ? "var(--color-muted)" : "transparent",
@@ -1412,20 +1519,6 @@ Total: ${formatCurrency(total)}
                         >
                           {room}
                         </Label>
-                        {isCustom && (
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              handleRemoveCustomRoom(room);
-                            }}
-                            className="h-6 w-6 p-0 text-muted-foreground hover:text-destructive hover:bg-destructive/10 shrink-0 transition-colors ml-1"
-                            aria-label={`Remove ${room}`}
-                          >
-                            <Minus className="w-3 h-3" />
-                          </Button>
-                        )}
                       </div>
                       
                       {/* Quantity Controls */}
@@ -1492,7 +1585,17 @@ Total: ${formatCurrency(total)}
                           onChange={(e) => {
                             const price = parseFloat(e.target.value) || 0;
                             setRoomPrices(prev => ({ ...prev, [room]: Math.max(0, price) }));
+                            // Automatically add room to selectedRooms if price is set and room is not selected
+                            // This ensures the price gets saved even if quantity is 0
+                            if (price > 0 && !selectedRooms.includes(room)) {
+                              setSelectedRooms([...selectedRooms, room]);
+                              // Also set quantity to 1 if it's 0, so the room gets saved
+                              if ((roomQuantities[room] || 0) === 0) {
+                                setRoomQuantities(prev => ({ ...prev, [room]: 1 }));
+                              }
+                            }
                           }}
+                          onClick={(e) => e.stopPropagation()}
                           placeholder="0.00"
                           className="w-20 sm:w-24 h-[36px] sm:h-8 text-right text-base sm:text-sm border-border bg-background focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-0 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
                           aria-label={`${room} price`}
@@ -1508,7 +1611,7 @@ Total: ${formatCurrency(total)}
                     initial={{ opacity: 0, height: 0 }}
                     animate={{ opacity: 1, height: "auto" }}
                     exit={{ opacity: 0, height: 0 }}
-                    className="flex items-center gap-2 px-4 py-3 rounded-lg border-2 border-dashed border-border bg-muted/30"
+                    className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 px-4 py-3 rounded-lg border-2 border-dashed border-border bg-muted/30"
                   >
                     <Input
                       type="text"
@@ -1520,12 +1623,34 @@ Total: ${formatCurrency(total)}
                         } else if (e.key === "Escape") {
                           setShowAddRoomInput(false);
                           setNewRoomName("");
+                          setNewRoomPrice("");
                         }
                       }}
                       placeholder="Enter room name..."
                       className="flex-1 h-9 text-sm border-border bg-background"
                       autoFocus
                     />
+                    <div className="flex items-center gap-1.5 shrink-0">
+                      <span className="text-sm text-muted-foreground font-medium">$</span>
+                      <Input
+                        type="number"
+                        min="0"
+                        step="0.01"
+                        value={newRoomPrice}
+                        onChange={(e) => setNewRoomPrice(e.target.value)}
+                        onKeyDown={(e) => {
+                          if (e.key === "Enter") {
+                            handleAddCustomRoom();
+                          } else if (e.key === "Escape") {
+                            setShowAddRoomInput(false);
+                            setNewRoomName("");
+                            setNewRoomPrice("");
+                          }
+                        }}
+                        placeholder="0.00"
+                        className="w-24 h-9 text-sm text-right border-border bg-background [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+                      />
+                    </div>
                     <Button
                       variant="default"
                       size="sm"
@@ -1540,6 +1665,7 @@ Total: ${formatCurrency(total)}
                       onClick={() => {
                         setShowAddRoomInput(false);
                         setNewRoomName("");
+                        setNewRoomPrice("");
                       }}
                       className="h-9 w-9 p-0 shrink-0 hover:bg-muted"
                     >

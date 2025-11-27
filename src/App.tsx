@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { Toaster } from "./components/ui/sonner";
 import { AuthScreen } from "./components/AuthScreen";
 import { VerificationScreen } from "./components/VerificationScreen";
@@ -105,7 +105,9 @@ export default function App() {
     } else if (state === "reports") {
       setSelectedReportItem(null);
     } else if (state === "projectDetail" && data?.project) {
-      setSelectedProject(data.project);
+      // Always get the latest project data from jobAssignments to ensure we have the most up-to-date state
+      const latestProject = jobAssignments.find(job => job.id === data.project.id) || data.project;
+      setSelectedProject(latestProject);
     } else if (state === "multiItemUpload") {
       setMultiItemUploadData(data || null);
     }
@@ -134,15 +136,137 @@ export default function App() {
     setJobAssignments((prev) => [...prev, job]);
   };
 
+  // Ref to track the last updated job to prevent race conditions
+  const lastUpdatedJobRef = useRef<string | null>(null);
+  // Track when we last updated via handleUpdateJob to prevent useEffect from overwriting
+  const lastUpdateTimestampRef = useRef<number>(0);
+
   const handleUpdateJob = (updatedJob: JobAssignment) => {
-    setJobAssignments((prev) => 
-      prev.map((job) => (job.id === updatedJob.id ? updatedJob : job))
-    );
+    // Track that we're updating this job to prevent useEffect from interfering
+    lastUpdatedJobRef.current = updatedJob.id;
+    // Track timestamp to prevent useEffect from overwriting recent updates
+    lastUpdateTimestampRef.current = Date.now();
+    
+    // Ensure itemIds is always an array (defensive programming)
+    const jobWithItemIds = {
+      ...updatedJob,
+      itemIds: Array.isArray(updatedJob.itemIds) ? updatedJob.itemIds : (updatedJob.itemIds ? [updatedJob.itemIds] : []),
+    };
+    
+    // Debug: Log the update
+    console.log('handleUpdateJob called:', {
+      jobId: jobWithItemIds.id,
+      itemIds: jobWithItemIds.itemIds,
+      itemIdsLength: jobWithItemIds.itemIds.length,
+      timestamp: lastUpdateTimestampRef.current,
+    });
+    
+    // Update jobAssignments state
+    setJobAssignments((prev) => {
+      const jobIndex = prev.findIndex((job) => job.id === jobWithItemIds.id);
+      if (jobIndex === -1) {
+        // Job not found, add it (shouldn't happen but handle gracefully)
+        console.log('Job not found, adding new job');
+        return [...prev, jobWithItemIds];
+      }
+      // Create a new array with the updated job - ensure we're using the exact updatedJob passed in
+      const updated = [...prev];
+      const oldJob = updated[jobIndex];
+      updated[jobIndex] = { ...jobWithItemIds }; // Create a new object reference
+      
+      console.log('Job updated:', {
+        oldItemIds: oldJob.itemIds,
+        newItemIds: updated[jobIndex].itemIds,
+        oldLength: (oldJob.itemIds || []).length,
+        newLength: (updated[jobIndex].itemIds || []).length,
+      });
+      
+      return updated;
+    });
+    
     // Update selected project if it's the one being updated
-    if (selectedProject && selectedProject.id === updatedJob.id) {
-      setSelectedProject(updatedJob);
+    // Use functional update to ensure we're working with latest state
+    setSelectedProject((currentSelectedProject) => {
+      if (currentSelectedProject && currentSelectedProject.id === jobWithItemIds.id) {
+        console.log('Updating selectedProject with new itemIds:', jobWithItemIds.itemIds);
+        return { ...jobWithItemIds }; // Create a new object reference
+      }
+      return currentSelectedProject; // Return unchanged if not the selected project
+    });
+    
+    // Update selectedItem if we're viewing an item detail and the item was assigned
+    // This ensures the item detail reflects the updated assignments
+    if (selectedItem && jobWithItemIds.itemIds && jobWithItemIds.itemIds.includes(selectedItem.id)) {
+      // Force a re-render by updating selectedItem reference
+      // The ItemDetail component will recalculate quantities based on updated jobAssignments
+      setSelectedItem({ ...selectedItem });
     }
+    
+    // Clear the tracking ref after a delay to allow state to settle
+    // This prevents the useEffect from overwriting our update
+    // Increased delay to ensure state updates complete
+    setTimeout(() => {
+      if (lastUpdatedJobRef.current === jobWithItemIds.id) {
+        lastUpdatedJobRef.current = null;
+        // Keep timestamp for additional 1 second to prevent any late-running useEffects
+        setTimeout(() => {
+          if (Date.now() - lastUpdateTimestampRef.current > 2000) {
+            lastUpdateTimestampRef.current = 0;
+          }
+        }, 1000);
+      }
+    }, 1500); // Increased to 1500ms for more robustness
   };
+
+  // Keep selectedProject in sync with jobAssignments
+  // This ensures that when jobAssignments is updated externally, selectedProject reflects the latest data
+  // We skip sync when we just updated via handleUpdateJob to prevent race conditions
+  useEffect(() => {
+    // Skip sync if we just updated this project in handleUpdateJob (prevent race condition)
+    // Also skip if update was very recent (within 2 seconds) to prevent race conditions
+    const timeSinceLastUpdate = Date.now() - lastUpdateTimestampRef.current;
+    if (selectedProject && (lastUpdatedJobRef.current === selectedProject.id || timeSinceLastUpdate < 2000)) {
+      console.log('useEffect sync skipped - handleUpdateJob just updated this project', {
+        jobId: lastUpdatedJobRef.current,
+        selectedProjectId: selectedProject.id,
+        timeSinceLastUpdate,
+      });
+      return;
+    }
+    
+    if (selectedProject && appState === "projectDetail") {
+      const updatedProject = jobAssignments.find(job => job.id === selectedProject.id);
+      if (updatedProject) {
+        // Compare itemIds to detect if there are actual changes
+        const currentItemIds = JSON.stringify((selectedProject.itemIds || []).sort());
+        const updatedItemIds = JSON.stringify((updatedProject.itemIds || []).sort());
+        // Only update if itemIds have actually changed AND the updated version has more or equal items
+        // This prevents reverting to an older state
+        if (currentItemIds !== updatedItemIds) {
+          const currentCount = (selectedProject.itemIds || []).length;
+          const updatedCount = (updatedProject.itemIds || []).length;
+          
+          console.log('useEffect sync check:', {
+            currentItemIds: selectedProject.itemIds,
+            updatedItemIds: updatedProject.itemIds,
+            currentCount,
+            updatedCount,
+            willUpdate: updatedCount >= currentCount,
+          });
+          
+          // Update if the updated version has MORE items OR if it's the same count but different items
+          // This ensures we always get the latest data without losing items
+          if (updatedCount >= currentCount) {
+            console.log('useEffect updating selectedProject');
+            setSelectedProject(updatedProject);
+          } else {
+            console.log('useEffect NOT updating - would lose items');
+          }
+        }
+      }
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [jobAssignments, appState]); // selectedProject.id is stable, so we can safely omit it from deps
 
   // Auto-transition from loading to dashboard
   useEffect(() => {
@@ -278,15 +402,19 @@ export default function App() {
         />
       )}
 
-      {appState === "projectDetail" && selectedProject && (
-        <ProjectDetail
-          project={selectedProject}
-          items={inventoryItems}
-          onNavigate={handleNavigate}
-          onUpdateJob={handleUpdateJob}
-          jobAssignments={jobAssignments}
-        />
-      )}
+      {appState === "projectDetail" && selectedProject && (() => {
+        // Always get the latest project data from jobAssignments to ensure we have the most up-to-date state
+        const latestProject = jobAssignments.find(job => job.id === selectedProject.id) || selectedProject;
+        return (
+          <ProjectDetail
+            project={latestProject}
+            items={inventoryItems}
+            onNavigate={handleNavigate}
+            onUpdateJob={handleUpdateJob}
+            jobAssignments={jobAssignments}
+          />
+        );
+      })()}
 
       {appState === "allProjects" && (
         <AllProjects

@@ -42,6 +42,22 @@ export function AssignToJob({ item, onNavigate, onCreateJob, jobAssignments = []
   const handleAssignToExistingProject = async (project: JobAssignment) => {
     if (!item || !onUpdateJob) return;
 
+    // Always get the latest project data from jobAssignments to ensure we have current itemIds
+    const latestProject = jobAssignments.find(job => job.id === project.id) || project;
+    
+    console.log('handleAssignToExistingProject:', {
+      projectId: latestProject.id,
+      existingItemIds: latestProject.itemIds,
+      itemId: item.id,
+    });
+    
+    // Check if item is already assigned to this project
+    const existingItemIds = Array.isArray(latestProject.itemIds) ? latestProject.itemIds : (latestProject.itemIds ? [latestProject.itemIds] : []);
+    if (existingItemIds.includes(item.id)) {
+      toast.error(`${item.name} is already assigned to this project`);
+      return;
+    }
+
     if (item.availableQuantity === 0) {
       toast.error("No items available");
       return;
@@ -52,19 +68,27 @@ export function AssignToJob({ item, onNavigate, onCreateJob, jobAssignments = []
     // Simulate API call
     await new Promise((resolve) => setTimeout(resolve, 500));
 
-    // Add item to project's itemIds
-    const existingItemIds = project.itemIds || [];
+    // Add item to project's itemIds (prevent duplicates)
+    // Create a new array to ensure React detects the change
     const updatedItemIds = [...existingItemIds, item.id];
+    
+    console.log('Updating project with itemIds:', updatedItemIds);
+    
     const updatedProject: JobAssignment = {
-      ...project,
+      ...latestProject,
       itemIds: updatedItemIds,
     };
 
+    // Update the job assignment
     onUpdateJob(updatedProject);
 
-    toast.success(`${item.name} assigned to ${project.clientName || project.shortAddress || project.jobLocation}`);
+    toast.success(`${item.name} assigned to ${latestProject.clientName || latestProject.shortAddress || latestProject.jobLocation}`);
     setIsLoading(false);
-    onNavigate("itemDetail", { item });
+    
+    // Use setTimeout to ensure state update completes before navigation
+    setTimeout(() => {
+      onNavigate("itemDetail", { item });
+    }, 0);
   };
 
   const handleSubmit = async (e: React.FormEvent) => {

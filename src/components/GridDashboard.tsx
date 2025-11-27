@@ -223,7 +223,15 @@ export function GridDashboard({ onNavigate, jobAssignments }: DashboardProps) {
   useEffect(() => {
     if (!visibleSections.topItems || !visibleSections.insights) return;
     
+    // Track last applied transform to prevent unnecessary DOM manipulations
+    let lastAppliedTransform = '';
+    let isProcessing = false;
+    
     const preventOverlap = () => {
+      // Prevent concurrent executions
+      if (isProcessing) return;
+      isProcessing = true;
+      
       try {
         // Find the grid items using multiple selectors for reliability
         const topItemsGridItem = Array.from(document.querySelectorAll('.react-grid-item')).find(
@@ -243,10 +251,16 @@ export function GridDashboard({ onNavigate, jobAssignments }: DashboardProps) {
           }
         );
         
-        if (!topItemsGridItem || !insightsGridItem) return;
+        if (!topItemsGridItem || !insightsGridItem) {
+          isProcessing = false;
+          return;
+        }
         
         const layoutContainer = topItemsGridItem.closest('.react-grid-layout');
-        if (!layoutContainer) return;
+        if (!layoutContainer) {
+          isProcessing = false;
+          return;
+        }
         
         // Get actual rendered positions
         const topItemsRect = topItemsGridItem.getBoundingClientRect();
@@ -267,54 +281,67 @@ export function GridDashboard({ onNavigate, jobAssignments }: DashboardProps) {
         if (insightsTop < topItemsBottom + requiredSpacing) {
           // Calculate how much to push Insights down
           const pushDown = (topItemsBottom + requiredSpacing) - insightsTop;
+          const newTransform = `translateY(${pushDown}px)`;
           
-          // Use multiple methods to ensure it sticks
-          (insightsGridItem as HTMLElement).style.setProperty('transform', `translateY(${pushDown}px)`, 'important');
-          (insightsGridItem as HTMLElement).style.setProperty('position', 'absolute', 'important');
-          (insightsGridItem as HTMLElement).style.setProperty('top', `${insightsTop + pushDown}px`, 'important');
-          (insightsGridItem as HTMLElement).style.setProperty('height', 'auto', 'important');
-          (insightsGridItem as HTMLElement).style.setProperty('overflow', 'visible', 'important');
+          // Only update if transform has changed
+          if (lastAppliedTransform !== newTransform) {
+            (insightsGridItem as HTMLElement).style.setProperty('transform', newTransform, 'important');
+            (insightsGridItem as HTMLElement).style.setProperty('position', 'absolute', 'important');
+            (insightsGridItem as HTMLElement).style.setProperty('top', `${insightsTop + pushDown}px`, 'important');
+            (insightsGridItem as HTMLElement).style.setProperty('height', 'auto', 'important');
+            (insightsGridItem as HTMLElement).style.setProperty('overflow', 'visible', 'important');
+            lastAppliedTransform = newTransform;
+          }
         } else {
           // Reset transform if no overlap (but keep other styles)
-          const currentTransform = (insightsGridItem as HTMLElement).style.transform;
-          if (currentTransform && currentTransform.includes('translateY')) {
-            (insightsGridItem as HTMLElement).style.setProperty('transform', '', 'important');
+          if (lastAppliedTransform !== '') {
+            const currentTransform = (insightsGridItem as HTMLElement).style.transform;
+            if (currentTransform && currentTransform.includes('translateY')) {
+              (insightsGridItem as HTMLElement).style.setProperty('transform', '', 'important');
+            }
+            (insightsGridItem as HTMLElement).style.setProperty('height', 'auto', 'important');
+            (insightsGridItem as HTMLElement).style.setProperty('overflow', 'visible', 'important');
+            lastAppliedTransform = '';
           }
-          (insightsGridItem as HTMLElement).style.setProperty('height', 'auto', 'important');
-          (insightsGridItem as HTMLElement).style.setProperty('overflow', 'visible', 'important');
         }
       } catch (e) {
         // Silently fail if elements not found
+      } finally {
+        isProcessing = false;
       }
     };
     
-    // Run immediately and set up multiple timeouts
-    preventOverlap();
-    const timeoutId1 = setTimeout(preventOverlap, 50);
-    const timeoutId2 = setTimeout(preventOverlap, 150);
-    const timeoutId3 = setTimeout(preventOverlap, 300);
-    const timeoutId4 = setTimeout(preventOverlap, 500);
+    // Throttle function to prevent excessive calls
+    let throttleTimeout: NodeJS.Timeout | null = null;
+    const throttledPreventOverlap = () => {
+      if (throttleTimeout) return;
+      throttleTimeout = setTimeout(() => {
+        preventOverlap();
+        throttleTimeout = null;
+      }, 100); // Throttle to max once per 100ms
+    };
     
-    // Use ResizeObserver to watch for topItems height changes
+    // Run immediately and set up delayed checks
+    preventOverlap();
+    const timeoutId1 = setTimeout(preventOverlap, 100);
+    const timeoutId2 = setTimeout(preventOverlap, 300);
+    
+    // Use ResizeObserver to watch for topItems height changes (throttled)
     let resizeObserver: ResizeObserver | null = null;
     const topItemsElement = document.querySelector('.top-items-expandable') || document.querySelector('[data-grid-key="topItems"]');
     if (topItemsElement && 'ResizeObserver' in window) {
       resizeObserver = new ResizeObserver(() => {
-        preventOverlap();
-        setTimeout(preventOverlap, 50);
-        setTimeout(preventOverlap, 150);
+        throttledPreventOverlap();
       });
       resizeObserver.observe(topItemsElement);
     }
     
-    // Use MutationObserver to catch when react-grid-layout updates styles
+    // Use MutationObserver to catch when react-grid-layout updates styles (throttled)
     let mutationObserver: MutationObserver | null = null;
     const layoutContainer = document.querySelector('.react-grid-layout');
     if (layoutContainer) {
       mutationObserver = new MutationObserver(() => {
-        setTimeout(preventOverlap, 10);
-        setTimeout(preventOverlap, 50);
-        setTimeout(preventOverlap, 150);
+        throttledPreventOverlap();
       });
       mutationObserver.observe(layoutContainer, {
         attributes: true,
@@ -324,33 +351,17 @@ export function GridDashboard({ onNavigate, jobAssignments }: DashboardProps) {
       });
     }
     
-    // Continuous monitoring with throttled requestAnimationFrame
-    let rafId: number | null = null;
-    let lastCheck = 0;
-    const runCheck = () => {
-      const now = Date.now();
-      if (now - lastCheck > 100) {
-        preventOverlap();
-        lastCheck = now;
-      }
-      rafId = requestAnimationFrame(runCheck);
-    };
-    rafId = requestAnimationFrame(runCheck);
-    
-    // Window resize handler
+    // Window resize handler (throttled)
     const resizeHandler = () => {
-      setTimeout(preventOverlap, 50);
-      setTimeout(preventOverlap, 200);
+      throttledPreventOverlap();
     };
     window.addEventListener('resize', resizeHandler);
     
     return () => {
       clearTimeout(timeoutId1);
       clearTimeout(timeoutId2);
-      clearTimeout(timeoutId3);
-      clearTimeout(timeoutId4);
-      if (rafId !== null) {
-        cancelAnimationFrame(rafId);
+      if (throttleTimeout) {
+        clearTimeout(throttleTimeout);
       }
       window.removeEventListener('resize', resizeHandler);
       if (resizeObserver) {
@@ -703,66 +714,8 @@ export function GridDashboard({ onNavigate, jobAssignments }: DashboardProps) {
             isResizable={isEditMode}
             onLayoutChange={(currentLayout, allLayouts) => {
               handleLayoutChange(currentLayout, allLayouts);
-              // Prevent overlap after layout change
-              setTimeout(() => {
-                const topItemsGridItem = Array.from(document.querySelectorAll('.react-grid-item')).find(
-                  (el) => el.querySelector('[data-grid-key="topItems"]') || el.querySelector('.top-items-expandable') || el.getAttribute('key') === 'topItems'
-                );
-                const insightsGridItem = Array.from(document.querySelectorAll('.react-grid-item')).find(
-                  (el) => el.querySelector('[data-grid-key="insights"]') || el.getAttribute('key') === 'insights'
-                );
-                
-                if (topItemsGridItem && insightsGridItem) {
-                  const layoutContainer = topItemsGridItem.closest('.react-grid-layout');
-                  if (layoutContainer) {
-                    const topItemsRect = topItemsGridItem.getBoundingClientRect();
-                    const insightsRect = insightsGridItem.getBoundingClientRect();
-                    const containerRect = layoutContainer.getBoundingClientRect();
-                    
-                    const topItemsBottom = topItemsRect.bottom - containerRect.top;
-                    const insightsTop = insightsRect.top - containerRect.top;
-                    const requiredSpacing = 40;
-                    
-                    // Always ensure topItems can expand
-                    (topItemsGridItem as HTMLElement).style.setProperty('height', 'auto', 'important');
-                    (topItemsGridItem as HTMLElement).style.setProperty('overflow', 'visible', 'important');
-                    
-                    // Fix overlap if needed
-                    if (insightsTop < topItemsBottom + requiredSpacing) {
-                      const pushDown = (topItemsBottom + requiredSpacing) - insightsTop;
-                      (insightsGridItem as HTMLElement).style.setProperty('transform', `translateY(${pushDown}px)`, 'important');
-                      (insightsGridItem as HTMLElement).style.setProperty('position', 'absolute', 'important');
-                    }
-                  }
-                }
-              }, 10);
-              setTimeout(() => {
-                // Run again after a short delay to catch any delayed updates
-                const topItemsGridItem = Array.from(document.querySelectorAll('.react-grid-item')).find(
-                  (el) => el.querySelector('[data-grid-key="topItems"]') || el.querySelector('.top-items-expandable')
-                );
-                const insightsGridItem = Array.from(document.querySelectorAll('.react-grid-item')).find(
-                  (el) => el.querySelector('[data-grid-key="insights"]')
-                );
-                
-                if (topItemsGridItem && insightsGridItem) {
-                  const layoutContainer = topItemsGridItem.closest('.react-grid-layout');
-                  if (layoutContainer) {
-                    const topItemsRect = topItemsGridItem.getBoundingClientRect();
-                    const insightsRect = insightsGridItem.getBoundingClientRect();
-                    const containerRect = layoutContainer.getBoundingClientRect();
-                    
-                    const topItemsBottom = topItemsRect.bottom - containerRect.top;
-                    const insightsTop = insightsRect.top - containerRect.top;
-                    const requiredSpacing = 40;
-                    
-                    if (insightsTop < topItemsBottom + requiredSpacing) {
-                      const pushDown = (topItemsBottom + requiredSpacing) - insightsTop;
-                      (insightsGridItem as HTMLElement).style.setProperty('transform', `translateY(${pushDown}px)`, 'important');
-                    }
-                  }
-                }
-              }, 100);
+              // Note: Overlap prevention is handled by MutationObserver in useEffect
+              // No need for duplicate logic here to avoid excessive DOM manipulations
             }}
             draggableHandle=".drag-handle"
             compactType="vertical"
